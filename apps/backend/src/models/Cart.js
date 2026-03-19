@@ -46,10 +46,9 @@ const cartSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Create indexes
+// Create indexes (expiresAt is already indexed via expires option)
 cartSchema.index({ user: 1 });
 cartSchema.index({ sessionId: 1 });
-cartSchema.index({ expiresAt: 1 });
 
 // Calculate subtotal
 cartSchema.methods.calculateSubtotal = function() {
