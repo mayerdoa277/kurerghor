@@ -37,8 +37,13 @@ app.use(helmet());
 app.use(mongoSanitize());
 
 // CORS configuration
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+  'https://kurerghor-mw8ehoth5-mayerdoa277s-projects.vercel.app'
+];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: allowedOrigins,
   credentials: true
 }));
 
