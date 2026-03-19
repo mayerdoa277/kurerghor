@@ -4,7 +4,7 @@ A production-ready, scalable, enterprise-level multi-vendor ecommerce web applic
 
 **GitHub Repository:** https://github.com/mayerdoa277/KURER-GHOR
 
-## Features
+## Featuress
 
 ### Core Features
 - **Multi-vendor Support**: Multiple vendors can sell products on the platform
