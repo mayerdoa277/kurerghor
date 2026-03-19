@@ -3,7 +3,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "npm start",
+    "startCommand": "npm start --workspace=@ecommerce/backend",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
