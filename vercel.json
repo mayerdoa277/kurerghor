@@ -1,0 +1,42 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "apps/backend/src/app.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "apps/frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "apps/backend/src/app.js"
+    },
+    {
+      "src": "/socket.io/(.*)",
+      "dest": "apps/backend/src/app.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "apps/frontend/dist/$1"
+    }
+  ],
+  "functions": {
+    "apps/backend/src/app.js": {
+      "maxDuration": 30
+    }
+  },
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "buildCommand": "npm run build",
+  "outputDirectory": "apps/frontend/dist",
+  "installCommand": "npm install",
+  "framework": null
+}
