@@ -4,12 +4,24 @@ let redisClient = null;
 
 export const connectRedis = async () => {
   try {
+    // Use Railway Redis in production, localhost in development
+    const redisUrl = process.env.REDIS_URL || 
+                    (process.env.NODE_ENV === 'production' 
+                      ? 'redis://default:SjRhOLlDLPzciBmDgSOdpzRxppsoZyHP@autorack.proxy.rlwy.net:48814'
+                      : 'redis://127.0.0.1:6379');
+
     redisClient = createClient({
-      url: process.env.REDIS_URL || 'redis://127.0.0.1:6379'
+      url: redisUrl
     });
 
     redisClient.on('error', (err) => {
-      console.error('Redis Client Error:', err);
+      if (process.env.NODE_ENV === 'production') {
+        console.error('Redis Client Error:', err);
+      } else {
+        console.log('Redis not available locally, skipping Redis features');
+        redisClient = null;
+        return;
+      }
     });
 
     redisClient.on('connect', () => {
@@ -19,14 +31,19 @@ export const connectRedis = async () => {
     await redisClient.connect();
     return redisClient;
   } catch (error) {
-    console.error('Redis connection error:', error);
-    throw error;
+    if (process.env.NODE_ENV === 'production') {
+      console.error('Redis connection error:', error);
+    } else {
+      console.log('Redis not available locally, skipping Redis features');
+    }
+    redisClient = null;
+    return null;
   }
 };
 
 export const getRedisClient = () => {
   if (!redisClient) {
-    throw new Error('Redis client not initialized. Call connectRedis() first.');
+    return null;
   }
   return redisClient;
 };
