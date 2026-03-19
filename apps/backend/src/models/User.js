@@ -141,8 +141,7 @@ userSchema.methods.toJSON = function() {
   return user;
 };
 
-// Index for search
-userSchema.index({ email: 1 });
+// Index for search (email is already indexed via unique: true)
 userSchema.index({ role: 1 });
 userSchema.index({ 'vendorRequest.approved': 1 });
 

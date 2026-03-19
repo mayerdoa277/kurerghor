@@ -4,10 +4,11 @@ let redisClient = null;
 
 export const connectRedis = async () => {
   try {
-    // Use Railway Redis in production, localhost in development
+    // Use Railway Redis environment variables in production, localhost in development
+    // Railway automatically provides these environment variables when Redis is linked
     const redisUrl = process.env.REDIS_URL || 
                     (process.env.NODE_ENV === 'production' 
-                      ? 'redis://default:SjRhOLlDLPzciBmDgSOdpzRxppsoZyHP@autorack.proxy.rlwy.net:48814'
+                      ? `redis://:${process.env.REDISPASSWORD}@${process.env.REDISHOST}:${process.env.REDISPORT}`
                       : 'redis://127.0.0.1:6379');
 
     redisClient = createClient({
