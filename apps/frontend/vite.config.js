@@ -6,6 +6,9 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   base: '/KURER-GHOR/', // GitHub repository name
+  build: {
+    outDir: 'docs' // Build to docs folder for GitHub Pages
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
