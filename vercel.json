@@ -33,5 +33,5 @@
     }
   },
   "installCommand": "npm install",
-  "buildCommand": "npm run build --workspace=apps/frontend"
+  "buildCommand": "cd apps/frontend && npm run build"
 }
