@@ -2,6 +2,8 @@
 
 A production-ready, scalable, enterprise-level multi-vendor ecommerce web application built with modern technologies.
 
+**GitHub Repository:** https://github.com/mayerdoa277/KURER-GHOR
+
 ## 🚀 Features
 
 ### Core Features
