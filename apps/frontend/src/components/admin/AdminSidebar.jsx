@@ -1,0 +1,176 @@
+import { useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import { 
+  LayoutDashboard, 
+  Users, 
+  ShoppingBag, 
+  Package, 
+  Settings, 
+  BarChart3, 
+  ChevronDown, 
+  ChevronRight,
+  LogOut,
+  Store
+} from 'lucide-react'
+
+const AdminSidebar = () => {
+  const [expandedMenus, setExpandedMenus] = useState({})
+  const location = useLocation()
+
+  const toggleMenu = (menuName) => {
+    setExpandedMenus(prev => ({
+      ...prev,
+      [menuName]: !prev[menuName]
+    }))
+  }
+
+  const menuItems = [
+    {
+      title: 'Dashboard',
+      href: '/admin/dashboard',
+      icon: LayoutDashboard
+    },
+    {
+      title: 'Users',
+      href: '/admin/users',
+      icon: Users
+    },
+    {
+      title: 'Products',
+      icon: Package,
+      submenu: [
+        {
+          title: 'All Products',
+          href: '/admin/products'
+        },
+        {
+          title: 'Categories',
+          href: '/admin/categories'
+        },
+        {
+          title: 'Add Product',
+          href: '/admin/products/add'
+        }
+      ]
+    },
+    {
+      title: 'Orders',
+      href: '/admin/orders',
+      icon: ShoppingBag
+    },
+    {
+      title: 'Vendors',
+      href: '/admin/vendors',
+      icon: Store
+    },
+    {
+      title: 'Analytics',
+      href: '/admin/analytics',
+      icon: BarChart3
+    },
+    {
+      title: 'Settings',
+      href: '/admin/settings',
+      icon: Settings
+    }
+  ]
+
+  const isActive = (href) => {
+    return location.pathname === href
+  }
+
+  const isSubmenuActive = (submenu) => {
+    return submenu.some(item => location.pathname === item.href)
+  }
+
+  return (
+    <div className="w-64 bg-gray-900 text-white h-full">
+      <div className="p-6">
+        <h2 className="text-2xl font-bold">Admin Panel</h2>
+      </div>
+
+      <nav className="px-4 pb-4">
+        <ul className="space-y-2">
+          {menuItems.map((item) => {
+            const Icon = item.icon
+            const hasSubmenu = item.submenu
+            const isExpanded = expandedMenus[item.title]
+            const isItemActive = item.href ? isActive(item.href) : false
+            const isSubActive = hasSubmenu ? isSubmenuActive(item.submenu) : false
+
+            return (
+              <li key={item.title}>
+                {hasSubmenu ? (
+                  <div>
+                    <button
+                      onClick={() => toggleMenu(item.title)}
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
+                        isSubActive
+                          ? 'bg-gray-800 text-white'
+                          : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Icon className="w-5 h-5" />
+                        <span>{item.title}</span>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
+                    </button>
+
+                    {isExpanded && (
+                      <ul className="mt-2 ml-4 space-y-1">
+                        {item.submenu.map((subItem) => (
+                          <li key={subItem.title}>
+                            <Link
+                              to={subItem.href}
+                              className={`block px-4 py-2 rounded-lg transition-colors ${
+                                isActive(subItem.href)
+                                  ? 'bg-gray-800 text-white'
+                                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                              }`}
+                            >
+                              {subItem.title}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ) : (
+                  <Link
+                    to={item.href}
+                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                      isItemActive
+                        ? 'bg-gray-800 text-white'
+                        : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span>{item.title}</span>
+                  </Link>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      </nav>
+
+      {/* Logout */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
+        <Link
+          to="/logout"
+          className="flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors"
+        >
+          <LogOut className="w-5 h-5" />
+          <span>Logout</span>
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+export default AdminSidebar
