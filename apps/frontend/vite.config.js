@@ -1,21 +1,22 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { fileURLToPath, URL } from 'node:url'
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@components': path.resolve(__dirname, './src/components'),
-      '@pages': path.resolve(__dirname, './src/pages'),
-      '@features': path.resolve(__dirname, './src/features'),
-      '@hooks': path.resolve(__dirname, './src/hooks'),
-      '@services': path.resolve(__dirname, './src/services'),
-      '@store': path.resolve(__dirname, './src/store'),
-      '@layouts': path.resolve(__dirname, './src/layouts'),
-      '@utils': path.resolve(__dirname, './src/utils')
+      '@': path.resolve(process.cwd(), './src'),
+      '@components': path.resolve(process.cwd(), './src/components'),
+      '@pages': path.resolve(process.cwd(), './src/pages'),
+      '@features': path.resolve(process.cwd(), './src/features'),
+      '@hooks': path.resolve(process.cwd(), './src/hooks'),
+      '@services': path.resolve(process.cwd(), './src/services'),
+      '@store': path.resolve(process.cwd(), './src/store'),
+      '@layouts': path.resolve(process.cwd(), './src/layouts'),
+      '@utils': path.resolve(process.cwd(), './src/utils')
     }
   },
   server: {
