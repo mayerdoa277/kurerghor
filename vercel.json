@@ -32,11 +32,6 @@
       "maxDuration": 30
     }
   },
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "buildCommand": "npm run build",
-  "outputDirectory": "apps/frontend/dist",
   "installCommand": "npm install",
-  "framework": null
+  "buildCommand": "npm run build --workspace=apps/frontend"
 }
