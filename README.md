@@ -4,7 +4,7 @@ A production-ready, scalable, enterprise-level multi-vendor ecommerce web applic
 
 **GitHub Repository:** https://github.com/mayerdoa277/KURER-GHOR
 
-## 🚀 Features
+## Features
 
 ### Core Features
 - **Multi-vendor Support**: Multiple vendors can sell products on the platform
@@ -275,3 +275,7 @@ For support, please email support@ecommerce-platform.com or create an issue in t
 ---
 
 Built with ❤️ by the Ecommerce Platform Team
+=======
+# kurerghor
+kurerghor ecommerce website...
+>>>>>>> dc9f7904c0fa5bc01b371e543d3b7db3974d0c88
