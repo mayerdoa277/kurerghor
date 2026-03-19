@@ -36,7 +36,7 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_API_URL': JSON.stringify(
       process.env.NODE_ENV === 'production' 
-        ? 'https://your-railway-app-url.railway.app' 
+        ? 'https://disciplined-victory.up.railway.app' 
         : 'http://localhost:5000'
     )
   }
