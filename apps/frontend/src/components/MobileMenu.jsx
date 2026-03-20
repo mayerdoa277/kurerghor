@@ -23,11 +23,6 @@ const MobileMenu = ({ isOpen, onClose }) => {
       name: 'Categories',
       href: '/categories',
       icon: Package
-    },
-    {
-      name: 'Wishlist',
-      href: '/wishlist',
-      icon: Heart
     }
   ]
 
