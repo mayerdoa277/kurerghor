@@ -1,5 +1,20 @@
 import Joi from 'joi';
 
+// Validation middleware
+export const validate = (schema) => {
+  return (req, res, next) => {
+    const { error } = schema.validate(req.body);
+    if (error) {
+      const message = error.details[0].message;
+      return res.status(400).json({
+        success: false,
+        error: message
+      });
+    }
+    next();
+  };
+};
+
 // User validation schemas
 export const registerSchema = Joi.object({
   name: Joi.string().required().min(2).max(50),
@@ -11,6 +26,16 @@ export const registerSchema = Joi.object({
 export const loginSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().required()
+});
+
+// Email auth schemas
+export const forgotPasswordSchema = Joi.object({
+  email: Joi.string().email().required()
+});
+
+export const resetPasswordSchema = Joi.object({
+  token: Joi.string().required(),
+  newPassword: Joi.string().required().min(6)
 });
 
 export const updateProfileSchema = Joi.object({
@@ -194,17 +219,3 @@ export const createCouponSchema = Joi.object({
   startDate: Joi.date().optional(),
   endDate: Joi.date().required()
 });
-
-// Validation middleware
-export const validate = (schema) => {
-  return (req, res, next) => {
-    const { error } = schema.validate(req.body);
-    if (error) {
-      return res.status(400).json({
-        success: false,
-        error: error.details[0].message
-      });
-    }
-    next();
-  };
-};

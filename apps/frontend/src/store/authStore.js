@@ -162,6 +162,16 @@ const useAuthStore = create(
         }
       },
 
+      setAuth: (token, refreshToken) => {
+        set({
+          token,
+          refreshToken,
+          isAuthenticated: true
+        })
+
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      },
+
       // Google OAuth
       googleLogin: (token, refreshToken) => {
         // This would be called after Google OAuth callback

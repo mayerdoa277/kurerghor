@@ -6,11 +6,13 @@ import { useCartStore } from '../store/cartStore'
 import SearchModal from './SearchModal'
 import UserDropdown from './UserDropdown'
 import MobileMenu from './MobileMenu'
+import { demoCategories } from '../demo/data/categories.js'
 
 const Header = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false)
   
   const navigate = useNavigate()
   const location = useLocation()
@@ -113,12 +115,42 @@ const Header = () => {
                 >
                   Products
                 </Link>
-                <Link 
-                  to="/blog" 
-                  className={`text-xs sm:text-sm nav-link ${location.pathname.startsWith('/blog') ? 'nav-link-active' : ''}`}
+                
+                {/* Categories Dropdown */}
+                <div 
+                  className="relative"
+                  onMouseEnter={() => setIsCategoriesOpen(true)}
+                  onMouseLeave={() => setIsCategoriesOpen(false)}
                 >
-                  Blog
-                </Link>
+                  <button className="flex items-center space-x-1 text-xs sm:text-sm nav-link">
+                    <span>Categories</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+                  
+                  {isCategoriesOpen && (
+                    <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                      {demoCategories.map((category) => (
+                        <Link
+                          key={category._id}
+                          to={`/products?category=${category.slug}`}
+                          className="flex items-center space-x-3 px-4 py-2 hover:bg-gray-50 transition-colors"
+                        >
+                          {category.image && (
+                            <img
+                              src={category.image}
+                              alt={category.name}
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                          )}
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-gray-900">{category.name}</div>
+                            <div className="text-xs text-gray-500">{category.productCount} products</div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </nav>
 
               {/* Cart - Responsive Size */}

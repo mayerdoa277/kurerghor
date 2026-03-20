@@ -60,9 +60,8 @@ const LoginPage = () => {
   }
 
   const handleGoogleLogin = () => {
-    // In a real implementation, this would redirect to Google OAuth
-    // For now, we'll show a message
-    toast.info('Google OAuth will be implemented soon!')
+    // Redirect to Google OAuth endpoint
+    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'}/auth/google`
   }
 
   return (
