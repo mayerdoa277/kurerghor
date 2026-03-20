@@ -66,9 +66,9 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow group">
-      {/* Product Image */}
-      <div className="relative aspect-square bg-gray-100 overflow-hidden">
+    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow group flex flex-col h-full">
+      {/* Product Image - Fixed Aspect Ratio */}
+      <div className="relative aspect-square bg-gray-100 overflow-hidden flex-shrink-0">
         <img
           src={product.images?.[0]?.url || '/api/placeholder/300/300'}
           alt={product.name}
@@ -90,14 +90,14 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
         </div>
       </div>
 
-      {/* Product Info */}
-      <div className="p-4">
+      {/* Product Info - Flexible Height */}
+      <div className="p-4 flex flex-col flex-1">
         {/* Product Name */}
         <Link 
           to={`/products/${product.slug}`}
           className="block group"
         >
-          <h3 className="font-medium text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-2 mb-2">
+          <h3 className="font-medium text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-2 mb-2 flex-grow">
             {product.name}
           </h3>
         </Link>
@@ -126,8 +126,8 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
           </div>
         </div>
         
-        {/* Add to Cart */}
-        <button className="w-full btn-primary flex items-center justify-center space-x-2">
+        {/* Add to Cart - Always at bottom */}
+        <button className="w-full btn-primary flex items-center justify-center space-x-2 mt-auto">
           <ShoppingCart className="w-4 h-4" />
           <span>Add to Cart</span>
         </button>
