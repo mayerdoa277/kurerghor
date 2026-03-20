@@ -1,18 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { X, Home, ShoppingBag, Package, User, Heart, ChevronRight } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 
 const MobileMenu = ({ isOpen, onClose }) => {
   const location = useLocation()
-  const { isAuthenticated, user } = useAuthStore()
-
-  // Close menu when route changes
-  useEffect(() => {
-    if (isOpen) {
-      onClose()
-    }
-  }, [location.pathname, isOpen, onClose])
+  const navigate = useNavigate()
+  const { isAuthenticated, user, logout } = useAuthStore()
 
   const menuItems = [
     {
@@ -53,7 +47,7 @@ const MobileMenu = ({ isOpen, onClose }) => {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 lg:hidden">
+    <div className="fixed inset-0 z-50">
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-black bg-opacity-50"
@@ -161,9 +155,10 @@ const MobileMenu = ({ isOpen, onClose }) => {
                     <p className="text-sm text-gray-600">{user?.email}</p>
                   </div>
                   <button
-                    onClick={() => {
-                      // Handle logout
+                    onClick={async () => {
+                      await logout()
                       onClose()
+                      navigate('/')
                     }}
                     className="w-full px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-center"
                   >

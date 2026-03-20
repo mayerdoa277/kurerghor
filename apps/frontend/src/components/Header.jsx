@@ -54,136 +54,117 @@ const Header = () => {
         }`}
       >
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <Link 
-              to="/" 
-              className="flex items-center space-x-2 text-2xl font-bold text-primary-600 hover:text-primary-700 transition-colors"
-            >
-              <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold">E</span>
-              </div>
-              <span className="hidden sm:block">Ecommerce</span>
-            </Link>
-
-            {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center space-x-8">
+          <div className={`flex items-center justify-between h-16 relative transition-all duration-300 ${
+            isMobileMenuOpen ? 'space-x-0' : 'space-x-4'
+          }`}>
+            {/* Logo - Fixed Size */}
+            <div className="flex-shrink-0">
               <Link 
                 to="/" 
-                className={`nav-link ${location.pathname === '/' ? 'nav-link-active' : ''}`}
+                className="flex items-center space-x-1 sm:space-x-2 text-lg sm:text-xl lg:text-2xl font-bold text-primary-600 hover:text-primary-700 transition-colors"
               >
-                Home
+                <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-xs sm:text-sm">E</span>
+                </div>
+                <span className="hidden sm:block">Ecommerce</span>
               </Link>
-              <Link 
-                to="/products" 
-                className={`nav-link ${location.pathname.startsWith('/products') ? 'nav-link-active' : ''}`}
-              >
-                Products
-              </Link>
-              <div className="relative group">
-                <button className="nav-link flex items-center space-x-1">
-                  Categories
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-                {/* Categories Dropdown - Will be implemented later */}
+            </div>
+
+            {/* Search Bar - Dynamic Positioning */}
+            <div className={`transition-all duration-300 ${
+              isMobileMenuOpen 
+                ? 'absolute left-1/2 transform -translate-x-1/2 w-32 sm:w-48 md:w-64 lg:w-80 xl:w-96 z-10' 
+                : 'flex-1 max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-4'
+            }`}>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  className={`w-full transition-all duration-300 ${
+                    isMobileMenuOpen 
+                      ? 'px-2 py-1 sm:px-3 sm:py-2 pl-6 sm:pl-10 pr-2 sm:pr-4 text-xs sm:text-sm'
+                      : 'px-3 py-2 pl-10 pr-4 text-sm'
+                  } text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500 focus:bg-white`}
+                  onClick={() => setIsSearchOpen(true)}
+                />
+                <Search className={`absolute text-gray-400 transition-all duration-300 ${
+                  isMobileMenuOpen 
+                    ? 'left-1.5 sm:left-3 top-1.5 sm:top-2.5 w-3 h-3 sm:w-4 sm:h-4'
+                    : 'left-3 top-2.5 w-4 h-4'
+                }`} />
               </div>
-              <Link 
-                to="/blog" 
-                className={`nav-link ${location.pathname.startsWith('/blog') ? 'nav-link-active' : ''}`}
-              >
-                Blog
-              </Link>
-              <Link 
-                to="/about" 
-                className={`nav-link ${location.pathname === '/about' ? 'nav-link-active' : ''}`}
-              >
-                About
-              </Link>
-            </nav>
+            </div>
 
-            {/* Desktop Actions */}
-            <div className="hidden lg:flex items-center space-x-4">
-              {/* Search */}
-              <button
-                onClick={() => setIsSearchOpen(true)}
-                className="p-2 text-gray-600 hover:text-primary-600 transition-colors"
-                aria-label="Search"
-              >
-                <Search className="w-5 h-5" />
-              </button>
+            {/* Right Side Actions - Fixed Width */}
+            <div className={`flex items-center justify-end space-x-1 sm:space-x-3 flex-shrink-0 transition-all duration-300 ${
+              isMobileMenuOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            }`}>
+              {/* Desktop Navigation */}
+              <nav className="hidden lg:flex items-center space-x-3 lg:space-x-6 mr-2 lg:mr-4">
+                <Link 
+                  to="/" 
+                  className={`text-xs sm:text-sm nav-link ${location.pathname === '/' ? 'nav-link-active' : ''}`}
+                >
+                  Home
+                </Link>
+                <Link 
+                  to="/products" 
+                  className={`text-xs sm:text-sm nav-link ${location.pathname.startsWith('/products') ? 'nav-link-active' : ''}`}
+                >
+                  Products
+                </Link>
+                <Link 
+                  to="/blog" 
+                  className={`text-xs sm:text-sm nav-link ${location.pathname.startsWith('/blog') ? 'nav-link-active' : ''}`}
+                >
+                  Blog
+                </Link>
+              </nav>
 
-              {/* Cart */}
+              {/* Cart - Responsive Size */}
               <button
                 onClick={openCart}
-                className="relative p-2 text-gray-600 hover:text-primary-600 transition-colors"
+                className="relative p-1 sm:p-2 text-gray-600 hover:text-primary-600 transition-colors"
                 aria-label="Cart"
               >
-                <ShoppingCart className="w-5 h-5" />
+                <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
                 {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  <span className="absolute -top-0.5 sm:-top-1 -right-0.5 sm:-right-1 bg-primary-600 text-white text-xs rounded-full w-3 h-3 sm:w-4 sm:h-4 sm:w-5 sm:h-5 flex items-center justify-center">
                     {itemCount > 99 ? '99+' : itemCount}
                   </span>
                 )}
               </button>
 
-              {/* User Account */}
+              {/* User Account - Responsive Size */}
               {isAuthenticated ? (
                 <UserDropdown user={user} onLogout={handleLogout} />
               ) : (
-                <div className="flex items-center space-x-2">
+                <div className="hidden lg:flex items-center space-x-1 sm:space-x-2">
                   <Link
                     to="/login"
-                    className="btn-ghost"
+                    className="btn-ghost text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-1"
                   >
                     Login
                   </Link>
                   <Link
                     to="/register"
-                    className="btn-primary"
+                    className="btn-primary text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-1"
                   >
                     Sign Up
                   </Link>
                 </div>
               )}
-            </div>
 
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 text-gray-600 hover:text-primary-600 transition-colors"
-              aria-label="Menu"
-            >
-              {isMobileMenuOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
-            </button>
-          </div>
-
-          {/* Mobile Actions Bar */}
-          <div className="lg:hidden border-t border-gray-200 py-3">
-            <div className="flex items-center justify-between">
-              {/* Mobile Search */}
+              {/* Mobile Menu Button - Responsive Size */}
               <button
-                onClick={() => setIsSearchOpen(true)}
-                className="flex items-center space-x-2 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="lg:hidden p-1 sm:p-2 text-gray-600 hover:text-primary-600 transition-colors"
+                aria-label="Menu"
               >
-                <Search className="w-4 h-4 text-gray-600" />
-                <span className="text-sm text-gray-600">Search...</span>
-              </button>
-
-              {/* Mobile Cart */}
-              <button
-                onClick={openCart}
-                className="relative p-2 text-gray-600 hover:text-primary-600 transition-colors"
-                aria-label="Cart"
-              >
-                <ShoppingCart className="w-5 h-5" />
-                {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {itemCount > 99 ? '99+' : itemCount}
-                  </span>
+                {isMobileMenuOpen ? (
+                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                ) : (
+                  <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
                 )}
               </button>
             </div>
@@ -198,8 +179,6 @@ const Header = () => {
       <MobileMenu 
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
-        user={user}
-        isAuthenticated={isAuthenticated}
         onLogout={handleLogout}
       />
 
