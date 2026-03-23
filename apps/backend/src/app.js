@@ -11,8 +11,10 @@ import { dirname, join } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
  
-// Load .env from backend root directory
-dotenv.config({ path: join(__dirname, '..', '.env') });
+// Load .env from backend root directory (only in development)
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config({ path: join(__dirname, '..', '.env') });
+}
 
 // Debug environment variables
 console.log('🔍 Environment variables loaded:');
