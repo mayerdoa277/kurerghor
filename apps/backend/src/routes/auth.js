@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login, refreshToken, logout, googleAuth, googleCallback, getMe, forgotPassword, verifyEmail, resetPassword } from '../controllers/authController.js';
+import { register, login, refreshToken, logout, googleAuth, googleCallback, getMe, forgotPassword, verifyOTP, verifyEmail, resetPassword } from '../controllers/authController.js';
 import { protect } from '../middlewares/auth.js';
 import { validate, registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from '../utils/validation.js';
 
@@ -14,6 +14,7 @@ router.get('/google/callback', googleCallback);
 
 // Public routes - Email auth
 router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
+router.post('/verify-otp', verifyOTP);
 router.get('/verify-email', verifyEmail);
 router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
 

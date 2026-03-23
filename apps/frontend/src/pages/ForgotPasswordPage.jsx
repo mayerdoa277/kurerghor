@@ -12,7 +12,7 @@ const ForgotPasswordPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     if (!email.trim()) {
       toast.error('Please enter your email address')
       return
@@ -24,13 +24,15 @@ const ForgotPasswordPage = () => {
     }
 
     setIsLoading(true)
-    
+
     try {
       const response = await api.post('/auth/forgot-password', { email })
-      
+
       if (response.data.success) {
-        setIsSubmitted(true)
         toast.success(response.data.message || 'Password reset instructions have been sent to your email')
+        
+        // Redirect to OTP verification page
+        navigate(`/verify-otp?email=${encodeURIComponent(email)}`)
       } else {
         toast.error(response.data.error || 'Failed to send reset instructions')
       }

@@ -12,7 +12,9 @@ import ProductsPage from './pages/ProductsPage'
 import ProductDetailPage from './pages/ProductDetailPage'
 import CartPage from './pages/CartPage'
 import CheckoutPage from './pages/CheckoutPage'
-import LoginPage from './pages/LoginPage'
+import ResetPassword from './pages/ResetPassword'
+import VerifyOTP from './pages/VerifyOTP'
+import Login from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import AuthCallbackPage from './pages/AuthCallbackPage'
@@ -76,7 +78,9 @@ function App() {
         </Route>
 
         {/* Auth routes */}
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify-otp" element={<VerifyOTP />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />

@@ -4,6 +4,21 @@ import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+ 
+// Get current directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+ 
+// Load .env from backend root directory
+dotenv.config({ path: join(__dirname, '..', '.env') });
+
+// Debug environment variables
+console.log('🔍 Environment variables loaded:');
+console.log('BREVO_API_KEY:', process.env.BREVO_API_KEY ? 'EXISTS' : 'MISSING');
+console.log('EMAIL_FROM:', process.env.EMAIL_FROM);
+console.log('EMAIL_FROM_NAME:', process.env.EMAIL_FROM_NAME);
 import { createServer } from 'http';
 import { initializeSocket } from './sockets/socketHandler.js';
 import { connectDB } from './config/database.js';
@@ -26,7 +41,6 @@ import couponRoutes from './routes/coupon.js';
 import reviewRoutes from './routes/review.js';
 import blogRoutes from './routes/blog.js';
 
-dotenv.config();
 
 console.log('Starting server...');
 
