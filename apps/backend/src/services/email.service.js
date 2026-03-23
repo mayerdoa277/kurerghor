@@ -1,87 +1,107 @@
 import nodemailer from 'nodemailer';
+import axios from 'axios';
+import { EMAIL_CONFIG, checkEmailConfig } from './emailConfig.js';
 
-// Create reusable transporter
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT),
-    secure: false, // true for 465, false for other ports
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-    tls: {
-      rejectUnauthorized: false, // Helps with some SMTP servers
+// Use dedicated email configuration (no fallback for security)
+const BREVO_CONFIG = {
+  apiKey: EMAIL_CONFIG.apiKey,
+  fromEmail: EMAIL_CONFIG.fromEmail,
+  fromName: EMAIL_CONFIG.fromName
+};
+
+// Debug: Check environment variables (moved to function)
+const checkEnvironment = () => {
+  checkEmailConfig(); // Use dedicated email configuration check
+};
+
+// Brevo API client
+const createBrevoAPIClient = () => {
+  checkEnvironment(); // Check environment when actually using the service
+  console.log('🔧 Creating Brevo API client...');
+  
+  if (!BREVO_CONFIG.apiKey) {
+    console.error('❌ Brevo API Key is missing!');
+    throw new Error('Brevo API Key is required. Please check your .env file.');
+  }
+  
+  console.log('🔧 API Key (first 10 chars):', BREVO_CONFIG.apiKey.substring(0, 10) + '...');
+  
+  return axios.create({
+    baseURL: 'https://api.brevo.com/v3',
+    headers: {
+      'api-key': BREVO_CONFIG.apiKey,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
     },
   });
 };
 
-// Retry mechanism for failed emails
-const sendWithRetry = async (transporter, mailOptions, maxRetries = 2) => {
-  let lastError;
-  
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const result = await transporter.sendMail(mailOptions);
-      console.log(`Email sent successfully on attempt ${attempt}:`, result.messageId);
-      return { success: true, messageId: result.messageId };
-    } catch (error) {
-      lastError = error;
-      console.warn(`Email attempt ${attempt} failed:`, error.message);
-      
-      if (attempt < maxRetries) {
-        // Exponential backoff: 1s, 2s, 4s...
-        const delay = Math.pow(2, attempt - 1) * 1000;
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-  }
-  
-  console.error('All email attempts failed:', lastError);
-  return { success: false, error: lastError };
-};
-
-// Main email sending function
-export const sendEmail = async (to, subject, html, text = null) => {
+// Brevo API email sending
+const sendWithBrevoAPI = async (to, subject, html, text = null) => {
   try {
-    console.log('📧 Starting email send process...');
-    console.log('📧 To:', to);
-    console.log('📧 Subject:', subject);
+    console.log('📧 Sending via Brevo API...');
+    const apiClient = createBrevoAPIClient();
     
-    const transporter = createTransporter();
-    console.log('📧 Transporter created');
-    
-    const mailOptions = {
-      from: `"${process.env.EMAIL_FROM_NAME || 'Ecommerce Platform'}" <${process.env.EMAIL_FROM}>`,
-      to: Array.isArray(to) ? to.join(', ') : to,
+    const emailData = {
+      sender: {
+        name: BREVO_CONFIG.fromName,
+        email: BREVO_CONFIG.fromEmail,
+      },
+      to: Array.isArray(to) ? to.map(email => ({ email })) : [{ email: to }],
       subject,
-      html,
-      text: text || html.replace(/<[^>]*>/g, ''), // Strip HTML for plain text
+      htmlContent: html,
+      textContent: text || html.replace(/<[^>]*>/g, ''),
     };
     
-    console.log('📧 Mail options:', {
-      from: mailOptions.from,
-      to: mailOptions.to,
-      subject: mailOptions.subject
+    console.log('📧 API Request data:', {
+      sender: emailData.sender,
+      to: emailData.to,
+      subject: emailData.subject,
     });
-
-    const result = await sendWithRetry(transporter, mailOptions);
     
-    // Close transporter connection
-    transporter.close();
+    const response = await apiClient.post('/smtp/email', emailData);
     
-    console.log('📧 Email send result:', result);
-    return result;
+    console.log('✅ Brevo API response:', response.data);
+    return { 
+      success: true, 
+      messageId: response.data.messageId,
+      method: 'api',
+      apiResponse: response.data
+    };
   } catch (error) {
-    console.error('💥 Email service error:', error);
-    return { success: false, error };
+    console.error('💥 Brevo API error:', error.response?.data || error.message);
+    return { 
+      success: false, 
+      error: error.response?.data || error.message, 
+      method: 'api' 
+    };
   }
 };
+
+// Main email sending function - Brevo API only
+export const sendEmail = async (to, subject, html, text = null) => {
+  console.log('🚀 Starting email send process...');
+  console.log('📧 To:', to);
+  console.log('📧 Subject:', subject);
+  console.log('📧 Method: Brevo API');
+  
+  try {
+    const result = await sendWithBrevoAPI(to, subject, html, text);
+    console.log('📧 Final email result:', result);
+    return result;
+  } catch (error) {
+    console.error('💥 Email service critical error:', error);
+    return { success: false, error, method: 'api' };
+  }
+};
+
+// Convenience method for API only
+export const sendEmailViaAPI = sendEmail;
 
 // Email templates
 export const emailTemplates = {
   verification: (name, verificationLink) => {
-    const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || process.env.VERCEL_URL || 'http://localhost:3000';
+    const clientUrl = 'http://localhost:3000'; // Update this to your frontend URL
     const fullLink = `${clientUrl}/verify-email?token=${verificationLink}`;
     
     return `
@@ -120,9 +140,15 @@ export const emailTemplates = {
   `;
   },
   
-  passwordReset: (name, resetLink) => {
-    const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || process.env.VERCEL_URL || 'http://localhost:3000';
-    const fullLink = `${clientUrl}/reset-password?token=${resetLink}`;
+  passwordReset: (name, otp, email) => {
+    // Support multiple environments
+    const clientUrl = process.env.FRONTEND_URL || 
+                     process.env.VERCEL_URL || 
+                     'http://localhost:3000';
+    
+    // Ensure proper URL format
+    const baseUrl = clientUrl.startsWith('http') ? clientUrl : `https://${clientUrl}`;
+    const resetPasswordUrl = `${baseUrl}/reset-password?otp=${otp}&email=${encodeURIComponent(email)}`;
     
     return `
     <!DOCTYPE html>
@@ -130,34 +156,62 @@ export const emailTemplates = {
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Reset Your Password</title>
+      <title>Reset Your Password - OTP</title>
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
         .header { background: #ef4444; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
         .content { background: #f9fafb; padding: 40px 30px; border-radius: 0 0 8px 8px; }
         .button { display: inline-block; background: #ef4444; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-        .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 14px; }
+        .otp-box { background: #f3f4f6; border: 2px dashed #d1d5db; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; }
+        .otp-code { font-size: 32px; font-weight: bold; color: #1f2937; letter-spacing: 4px; margin: 10px 0; }
         .warning { background: #fef3c7; border: 1px solid #f59e0b; padding: 15px; border-radius: 6px; margin: 20px 0; }
+        .instructions { background: #e0f2fe; border: 1px solid #0ea5e9; padding: 15px; border-radius: 6px; margin: 20px 0; }
+        .env-info { background: #f0f9ff; border: 1px solid #0284c7; padding: 10px; border-radius: 4px; margin: 15px 0; font-size: 12px; text-align: center; }
       </style>
     </head>
     <body>
       <div class="container">
         <div class="header">
-          <h1>Reset Your Password</h1>
+          <h1>Password Reset OTP</h1>
         </div>
         <div class="content">
           <p>Hi ${name},</p>
-          <p>We received a request to reset your password. Click the button below to set a new password:</p>
-          <a href="${fullLink}" class="button">Reset Password</a>
-          <div class="warning">
-            <strong>Security Notice:</strong> This link expires in 15 minutes. If you didn't request this reset, please ignore this email.
+          <p>We received a request to reset your password. Use the OTP code below:</p>
+          
+          <div class="otp-box">
+            <div class="otp-code">${otp}</div>
+            <p><strong>Your 6-Digit OTP Code:</strong> ${otp}</p>
           </div>
+          
+          <div class="instructions">
+            <h3>How to use this OTP:</h3>
+            <ol>
+              <li>Click the button below for quick reset</li>
+              <li>Or go to reset page and enter this code: <strong>${otp}</strong></li>
+              <li>Set your new password</li>
+            </ol>
+          </div>
+          
+          <p><strong>Quick Reset:</strong> <a href="${resetPasswordUrl}" class="button">Reset Password Now</a></p>
           <p>If the button doesn't work, copy and paste this link into your browser:</p>
-          <p style="word-break: break-all; color: #4f46e5;">${fullLink}</p>
+          <p style="word-break: break-all; color: #4f46e5;">${resetPasswordUrl}</p>
+          
+          <div class="env-info">
+            Environment: ${baseUrl.includes('localhost') ? 'Development' : baseUrl.includes('vercel') ? 'Vercel Staging' : 'Production'}
+          </div>
+          
+          <div class="warning">
+            <strong>Security Notice:</strong> 
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li>This code expires in 15 minutes</li>
+              <li>If you didn't request this reset, please ignore this email</li>
+              <li>Never share this code with anyone</li>
+            </ul>
+          </div>
         </div>
-        <div class="footer">
-          <p>&copy; 2024 Ecommerce Platform. All rights reserved.</p>
+        <div class="footer" style="text-align: center; padding: 20px; color: #6b7280; font-size: 14px;">
+          <p>&copy; 2024 Kurerghor Ecommerce Platform. All rights reserved.</p>
         </div>
       </div>
     </body>
@@ -166,7 +220,7 @@ export const emailTemplates = {
   },
   
   orderConfirmation: (orderData) => {
-    const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || process.env.VERCEL_URL || 'http://localhost:3000';
+    const clientUrl = 'http://localhost:3000'; // Update this to your frontend URL
     
     return `
     <!DOCTYPE html>
@@ -211,7 +265,7 @@ export const emailTemplates = {
   },
   
   shippingUpdate: (shippingData) => {
-    const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || process.env.VERCEL_URL || 'http://localhost:3000';
+    const clientUrl = 'http://localhost:3000'; // Update this to your frontend URL
     
     return `
     <!DOCTYPE html>

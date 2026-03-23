@@ -122,7 +122,7 @@ export const refreshToken = async (req, res, next) => {
 
     // Verify refresh token
     const decoded = verifyRefreshToken(refreshToken);
-    
+
     // Get user
     const user = await User.findById(decoded.id);
     if (!user || !user.isActive) {
@@ -186,7 +186,7 @@ export const logout = async (req, res, next) => {
 export const googleAuth = async (req, res, next) => {
   try {
     const { GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI } = process.env;
-    
+
     if (!GOOGLE_CLIENT_ID || !GOOGLE_REDIRECT_URI) {
       return res.status(500).json({
         success: false,
@@ -257,7 +257,7 @@ export const googleCallback = async (req, res, next) => {
     };
 
     // Find or create user
-    let user = await User.findOne({ 
+    let user = await User.findOne({
       $or: [
         { googleId: googleUser.id },
         { email: googleUser.email }
@@ -347,20 +347,23 @@ export const forgotPassword = async (req, res, next) => {
     }
 
     console.log('✅ User found:', user._id);
-    const resetToken = generatePasswordResetToken(user._id, user.email);
-    console.log('🔑 Reset token generated');
-    
-    user.passwordResetToken = hashToken(resetToken);
-    user.passwordResetExpires = new Date(Date.now() + 15 * 60 * 1000);
-    await user.save();
-    console.log('💾 User updated with reset token');
 
-    const resetLink = resetToken;
-    const emailHtml = emailTemplates.passwordReset(user.name, resetLink);
-    console.log('📧 Email template generated');
-    
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log('🔑 6-digit OTP generated:', otp);
+
+    // Store OTP in database with expiry
+    user.passwordResetOTP = otp;
+    user.passwordResetExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    await user.save();
+    console.log('💾 User updated with OTP');
+
+    // Send email with 6-digit OTP
+    const emailHtml = emailTemplates.passwordReset(user.name, otp, user.email);
+    console.log('📧 Email template generated with 6-digit OTP');
+
     console.log('📤 Sending email to:', user.email);
-    const emailResult = await sendEmail(user.email, 'Reset Your Password', emailHtml);
+    const emailResult = await sendEmail(user.email, 'Password Reset OTP - Your 6-digit Code', emailHtml);
     console.log('📧 Email result:', emailResult);
 
     if (!emailResult.success) {
@@ -397,7 +400,7 @@ export const verifyEmail = async (req, res, next) => {
     }
 
     const decoded = verifyToken(token);
-    
+
     if (decoded.type !== 'email_verification') {
       return res.status(400).json({
         success: false,
@@ -448,6 +451,59 @@ export const verifyEmail = async (req, res, next) => {
   }
 };
 
+// @desc    Verify OTP for password reset
+// @route   POST /api/v1/auth/verify-otp
+// @access  Public
+export const verifyOTP = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+ 
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email and OTP are required'
+      });
+    }
+ 
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+ 
+    // Check if OTP matches
+    if (user.passwordResetOTP !== otp) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid OTP code'
+      });
+    }
+ 
+    // Check if OTP has expired
+    if (user.passwordResetExpires < new Date()) {
+      return res.status(400).json({
+        success: false,
+        error: 'OTP has expired'
+      });
+    }
+ 
+    // Generate a reset token for the password reset page
+    const resetToken = generatePasswordResetToken(user._id, user.email);
+    user.passwordResetToken = hashToken(resetToken);
+    await user.save();
+ 
+    res.json({
+      success: true,
+      message: 'OTP verified successfully',
+      resetToken // Send token to frontend for reset page
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Reset password
 // @route   POST /api/v1/auth/reset-password
 // @access  Public
@@ -463,7 +519,7 @@ export const resetPassword = async (req, res, next) => {
     }
 
     const decoded = verifyToken(token);
-    
+
     if (decoded.type !== 'password_reset') {
       return res.status(400).json({
         success: false,
@@ -487,13 +543,6 @@ export const resetPassword = async (req, res, next) => {
       });
     }
 
-    if (user.passwordResetExpires < new Date()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Reset token has expired'
-      });
-    }
-
     if (newPassword.length < 6) {
       return res.status(400).json({
         success: false,
@@ -504,6 +553,7 @@ export const resetPassword = async (req, res, next) => {
     user.password = newPassword;
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
+    user.passwordResetOTP = undefined;
     await user.save();
 
     res.json({
