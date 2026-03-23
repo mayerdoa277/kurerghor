@@ -8,7 +8,7 @@ export const connectRedis = async () => {
     // Railway provides REDIS_URL with the correct connection string
     const redisUrl = process.env.REDIS_URL || 
                     (process.env.NODE_ENV === 'production' 
-                      ? `redis://:${process.env.REDIS_PASSWORD}@${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`
+                      ? `redis://:${process.env.REDIS_PASSWORD}@${process.env.REDISHOST}:${process.env.REDISPORT}`
                       : 'redis://127.0.0.1:6379');
 
     redisClient = createClient({
