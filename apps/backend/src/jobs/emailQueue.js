@@ -4,10 +4,15 @@ import { getRedisClient } from '../config/redis.js';
 
 // Create email queue with Redis connection
 const emailQueue = new Queue('email queue', {
-  connection: process.env.REDIS_URL || {
+  connection: process.env.REDIS_URL || (process.env.NODE_ENV === 'production' ? {
+    host: process.env.REDISHOST,
+    port: process.env.REDISPORT || 6379,
+    password: process.env.REDISPASSWORD,
+    username: process.env.REDISUSER
+  } : {
     host: '127.0.0.1',
     port: 6379
-  }
+  })
 });
 
 // Create worker to process email jobs
@@ -56,10 +61,15 @@ const emailWorker = new Worker('email queue', async (job) => {
     throw error;
   }
 }, {
-  connection: process.env.REDIS_URL || {
+  connection: process.env.REDIS_URL || (process.env.NODE_ENV === 'production' ? {
+    host: process.env.REDISHOST,
+    port: process.env.REDISPORT || 6379,
+    password: process.env.REDISPASSWORD,
+    username: process.env.REDISUSER
+  } : {
     host: '127.0.0.1',
     port: 6379
-  }
+  })
 });
 
 // Handle failed jobs
