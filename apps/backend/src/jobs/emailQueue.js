@@ -4,9 +4,9 @@ import { getRedisClient } from '../config/redis.js';
 
 // Create email queue with Redis connection
 const emailQueue = new Queue('email queue', {
-  connection: {
-    host: process.env.REDIS_URL?.replace('redis://', '').split(':')[0] || '127.0.0.1',
-    port: parseInt(process.env.REDIS_URL?.split(':')[1]) || 6379,
+  connection: process.env.REDIS_URL || {
+    host: '127.0.0.1',
+    port: 6379
   }
 });
 
@@ -56,9 +56,9 @@ const emailWorker = new Worker('email queue', async (job) => {
     throw error;
   }
 }, {
-  connection: {
-    host: process.env.REDIS_URL?.replace('redis://', '').split(':')[0] || '127.0.0.1',
-    port: parseInt(process.env.REDIS_URL?.split(':')[1]) || 6379,
+  connection: process.env.REDIS_URL || {
+    host: '127.0.0.1',
+    port: 6379
   }
 });
 

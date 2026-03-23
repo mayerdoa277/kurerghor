@@ -52,7 +52,7 @@ app.use(mongoSanitize());
 
 // CORS configuration
 const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:3000',
+  process.env.FRONTEND_URL || process.env.VERCEL_URL || 'http://localhost:3000',
   'https://kurerghor-mw8ehoth5-mayerdoa277s-projects.vercel.app'
 ];
 
