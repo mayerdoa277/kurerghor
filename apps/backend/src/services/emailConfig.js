@@ -17,7 +17,7 @@ export const EMAIL_CONFIG = {
   fromName: process.env.EMAIL_FROM_NAME || 'Kurerghor Ecommerce Platform',
   
   // Email Settings
-  templateUrl: process.env.EMAIL_TEMPLATE_URL || 'http://localhost:3000',
+  templateUrl: process.env.EMAIL_TEMPLATE_URL || process.env.FRONTEND_URL || 'http://localhost:3000',
   supportEmail: process.env.EMAIL_SUPPORT_EMAIL || 'support@kurerghor.com'
 };
 
