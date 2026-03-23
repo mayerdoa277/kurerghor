@@ -1,0 +1,23 @@
+Starting Container
+🔍 Environment variables loaded:
+BREVO_API_KEY: EXISTS
+EMAIL_FROM: rafysoleman@gmail.com
+npm warn config production Use `--omit=dev` instead.
+> @ecommerce/backend@1.0.0 start
+> node src/app.js
+EMAIL_FROM_NAME: Kurerghor Ecommerce Platform
+Starting server...
+MongoDB Connected: ac-mocvqfe-shard-00-00.wge69r9.mongodb.net
+✅ MongoDB connected
+Redis Client Connected
+✅ Redis connected
+🔧 Initializing email queue with Redis URL: redis://default:THrmMaafvETWptZCguOkIohotTMkopaU@redis.railway.internal:6379
+🔧 Redis URL format: VALID
+🔧 Parsed Redis config: { host: 'redis.railway.internal', port: 6379, hasAuth: true }
+✅ Email queue created successfully
+✅ Email worker initialized successfully
+✅ Email queue initialized
+✅ Socket.io initialized
+🚀 Server running on port 5000
+📱 Environment: production
+🔗 WebSocket server ready
