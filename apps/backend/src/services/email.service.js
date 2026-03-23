@@ -101,7 +101,7 @@ export const sendEmailViaAPI = sendEmail;
 // Email templates
 export const emailTemplates = {
   verification: (name, verificationLink) => {
-    const clientUrl = 'http://localhost:3000'; // Update this to your frontend URL
+    const clientUrl = process.env.FRONTEND_URL || process.env.VERCEL_URL || 'http://localhost:3000';
     const fullLink = `${clientUrl}/verify-email?token=${verificationLink}`;
     
     return `
@@ -220,7 +220,7 @@ export const emailTemplates = {
   },
   
   orderConfirmation: (orderData) => {
-    const clientUrl = 'http://localhost:3000'; // Update this to your frontend URL
+    const clientUrl = process.env.FRONTEND_URL || process.env.VERCEL_URL || 'http://localhost:3000';
     
     return `
     <!DOCTYPE html>
@@ -265,7 +265,7 @@ export const emailTemplates = {
   },
   
   shippingUpdate: (shippingData) => {
-    const clientUrl = 'http://localhost:3000'; // Update this to your frontend URL
+    const clientUrl = process.env.FRONTEND_URL || process.env.VERCEL_URL || 'http://localhost:3000';
     
     return `
     <!DOCTYPE html>
