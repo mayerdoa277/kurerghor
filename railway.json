@@ -8,6 +8,6 @@
     "restartPolicyMaxRetries": 10
   },
   "variables": {
-    "REDIS_URL": "redis://${{Redis.REDISUSER}}:${{Redis.REDISPASSWORD}}@${{Redis.REDISHOST}}:${{Redis.REDISPORT}}"
+    "REDIS_URL": "${{ Redis.REDIS_PRIVATE_URL }}"
   }
 }
