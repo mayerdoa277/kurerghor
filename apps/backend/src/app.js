@@ -113,7 +113,8 @@ const startServer = async () => {
     console.log('✅ Redis connected');
 
     // Initialize email queue after Redis is connected
-    import('./jobs/emailQueue.js');
+    const { initializeEmailQueue } = await import('./jobs/emailQueue.js');
+    await initializeEmailQueue();
     console.log('✅ Email queue initialized');
 
     // Create HTTP server
