@@ -16,11 +16,33 @@ export const initializeEmailQueue = async () => {
       return;
     }
     
-    console.log('🔧 Initializing email queue with Redis URL:', redisUrl ? 'EXISTS' : 'MISSING');
+    console.log('🔧 Initializing email queue with Redis URL:', redisUrl);
+    console.log('🔧 Redis URL format:', redisUrl.startsWith('redis://') ? 'VALID' : 'INVALID');
+    
+    // Parse Redis URL to get connection details for BullMQ
+    let connectionConfig;
+    
+    if (redisUrl.startsWith('redis://')) {
+      // Parse redis://username:password@host:port format
+      const url = new URL(redisUrl);
+      connectionConfig = {
+        host: url.hostname,
+        port: parseInt(url.port) || 6379,
+        username: url.username || undefined,
+        password: url.password || undefined
+      };
+      console.log('🔧 Parsed Redis config:', {
+        host: connectionConfig.host,
+        port: connectionConfig.port,
+        hasAuth: !!(connectionConfig.username && connectionConfig.password)
+      });
+    } else {
+      connectionConfig = redisUrl;
+    }
     
     // Create email queue with Redis connection
     emailQueue = new Queue('email queue', {
-      connection: redisUrl
+      connection: connectionConfig
     });
     
     console.log('✅ Email queue created successfully');
@@ -71,7 +93,7 @@ export const initializeEmailQueue = async () => {
         throw error;
       }
     }, {
-      connection: redisUrl
+      connection: connectionConfig
     });
     
     // Handle failed jobs
