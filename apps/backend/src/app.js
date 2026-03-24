@@ -56,6 +56,7 @@ app.use(mongoSanitize());
 const allowedOrigins = [
   process.env.FRONTEND_URL || process.env.VERCEL_URL || 'http://localhost:3000',
   'https://kurerghor-mw8ehoth5-mayerdoa277s-projects.vercel.app',
+  'https://kurerghor-mw8ehoth5-mayerdoa277s-projects.vercel.app/',
   'https://kurerghor.vercel.app'
 ];
 
@@ -68,6 +69,9 @@ console.log('Environment VERCEL_URL:', process.env.VERCEL_URL);
 app.options('*', (req, res) => {
   const origin = req.headers.origin;
   console.log('🔍 Preflight request from origin:', origin);
+  console.log('🔍 Available origins:', allowedOrigins);
+  console.log('🔍 Origin match test:', allowedOrigins.includes(origin));
+  
   if (allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -76,8 +80,21 @@ app.options('*', (req, res) => {
     console.log('✅ CORS headers set for origin:', origin);
   } else {
     console.log('❌ Origin not allowed:', origin);
+    console.log('❌ Available origins were:', allowedOrigins);
   }
   res.sendStatus(200);
+});
+
+// Enhanced CORS middleware with debugging
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+  next();
 });
 
 app.use(cors({
