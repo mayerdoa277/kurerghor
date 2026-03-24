@@ -24,7 +24,8 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://localhost:5000',
-        changeOrigin: true
+        changeOrigin: true,
+        secure: false
       },
       '/socket.io': {
         target: 'http://localhost:5000',
@@ -33,11 +34,20 @@ export default defineConfig({
       }
     }
   },
+  build: {
+    outDir: 'dist',
+    sourcemap: true
+  },
   define: {
     'import.meta.env.VITE_API_URL': JSON.stringify(
       process.env.NODE_ENV === 'production' 
         ? 'https://disciplined-victory.up.railway.app/api/v1' 
         : 'http://localhost:5000/api/v1'
+    ),
+    'import.meta.env.VITE_API_BASE': JSON.stringify(
+      process.env.NODE_ENV === 'production' 
+        ? 'https://disciplined-victory.up.railway.app' 
+        : 'http://localhost:5000'
     )
   }
 })

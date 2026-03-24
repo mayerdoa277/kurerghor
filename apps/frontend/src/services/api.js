@@ -6,12 +6,28 @@ const api = axios.create({
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  withCredentials: true // Important for CORS
 })
+
+// Debug logging
+console.log('🔧 API Configuration:')
+console.log('Base URL:', api.defaults.baseURL)
+console.log('Environment:', import.meta.env.MODE)
+console.log('VITE_API_URL:', import.meta.env.VITE_API_URL)
 
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
+    console.log('🚀 API Request:', {
+      method: config.method?.toUpperCase(),
+      url: config.url,
+      baseURL: config.baseURL,
+      fullURL: `${config.baseURL}${config.url}`,
+      headers: config.headers,
+      origin: window.location.origin
+    })
+    
     // Add auth token if available
     const token = localStorage.getItem('auth-storage')
     if (token) {
@@ -34,6 +50,7 @@ api.interceptors.request.use(
     return config
   },
   (error) => {
+    console.error('❌ Request Error:', error)
     return Promise.reject(error)
   }
 )
@@ -41,9 +58,21 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
+    console.log('✅ API Response:', {
+      status: response.status,
+      url: response.config.url,
+      data: response.data
+    })
     return response
   },
   async (error) => {
+    console.error('❌ API Error:', {
+      message: error.message,
+      status: error.response?.status,
+      url: error.config?.url,
+      corsError: error.message.includes('CORS'),
+      networkError: !error.response
+    })
     const originalRequest = error.config
 
     // Handle 401 Unauthorized
