@@ -48,11 +48,7 @@ console.log('Starting server...');
 
 const app = express();
 
-// Security middleware
-app.use(helmet());
-app.use(mongoSanitize());
-
-// CORS configuration
+// CORS configuration - MUST come before all other middleware
 const allowedOrigins = [
   process.env.FRONTEND_URL || process.env.VERCEL_URL || 'http://localhost:3000',
   'https://kurerghor-mw8ehoth5-mayerdoa277s-projects.vercel.app',
@@ -65,7 +61,7 @@ console.log('Allowed origins:', allowedOrigins);
 console.log('Environment FRONTEND_URL:', process.env.FRONTEND_URL);
 console.log('Environment VERCEL_URL:', process.env.VERCEL_URL);
 
-// Handle preflight requests
+// Handle preflight requests FIRST
 app.options('*', (req, res) => {
   const origin = req.headers.origin;
   console.log('🔍 Preflight request from origin:', origin);
@@ -85,7 +81,7 @@ app.options('*', (req, res) => {
   res.sendStatus(200);
 });
 
-// Enhanced CORS middleware with debugging
+// Enhanced CORS middleware for all requests
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
@@ -97,12 +93,17 @@ app.use((req, res, next) => {
   next();
 });
 
+// Standard CORS middleware
 app.use(cors({
   origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
+
+// Security middleware (AFTER CORS)
+app.use(helmet());
+app.use(mongoSanitize());
 
 // Rate limiting
 const limiter = rateLimit({
