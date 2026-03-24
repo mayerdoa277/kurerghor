@@ -1,23 +1,45 @@
+You reached the start of the range
+Mar 24, 2026, 4:13 PM
 Starting Container
-🔍 Environment variables loaded:
-BREVO_API_KEY: EXISTS
-EMAIL_FROM: rafysoleman@gmail.com
 npm warn config production Use `--omit=dev` instead.
 > @ecommerce/backend@1.0.0 start
 > node src/app.js
+🔍 Environment variables loaded:
+BREVO_API_KEY: EXISTS
+EMAIL_FROM: rafysoleman@gmail.com
 EMAIL_FROM_NAME: Kurerghor Ecommerce Platform
 Starting server...
+🔍 ALL Environment Variables:
+NODE_ENV: production
+FRONTEND_URL: https://kurerghor.vercel.app
+VERCEL_URL: undefined
+CORS_ORIGIN: https://kurerghor.vercel.app
+PORT: 5000
+REDIS_URL: SET
+🔍 CORS Configuration:
+Allowed origins: [
+  'https://kurerghor.vercel.app',
+  'https://kurerghor-mw8ehoth5-mayerdoa277s-projects.vercel.app',
+  'https://kurerghor-mw8ehoth5-mayerdoa277s-projects.vercel.app/',
+  'https://kurerghor.vercel.app'
+]
+🚀 Starting server initialization...
+🔌 Connecting to MongoDB...
 MongoDB Connected: ac-mocvqfe-shard-00-00.wge69r9.mongodb.net
 ✅ MongoDB connected
+🔌 Connecting to Redis...
 Redis Client Connected
 ✅ Redis connected
+🔧 Initializing email queue...
+🚀 Server running on port 5000
+📱 Environment: production
+🔗 WebSocket server ready
 🔧 Initializing email queue with Redis URL: redis://default:THrmMaafvETWptZCguOkIohotTMkopaU@redis.railway.internal:6379
 🔧 Redis URL format: VALID
 🔧 Parsed Redis config: { host: 'redis.railway.internal', port: 6379, hasAuth: true }
 ✅ Email queue created successfully
 ✅ Email worker initialized successfully
 ✅ Email queue initialized
+🌐 Creating HTTP server...
+🔌 Initializing Socket.io...
 ✅ Socket.io initialized
-🚀 Server running on port 5000
-📱 Environment: production
-🔗 WebSocket server ready

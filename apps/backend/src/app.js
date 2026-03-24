@@ -48,13 +48,49 @@ console.log('Starting server...');
 
 const app = express();
 
-console.log('🔍 ALL Environment Variables:');
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
-console.log('VERCEL_URL:', process.env.VERCEL_URL);
-console.log('CORS_ORIGIN:', process.env.CORS_ORIGIN);
-console.log('PORT:', process.env.PORT);
-console.log('REDIS_URL:', process.env.REDIS_URL ? 'SET' : 'NOT SET');
+// ULTIMATE CORS DEBUGGING - Catch everything
+console.log('� EXPRESS APP STARTING');
+console.log('🔧 NODE_ENV:', process.env.NODE_ENV);
+console.log('🔧 PORT:', process.env.PORT);
+
+// Add middleware BEFORE everything else to catch all requests
+app.use((req, res, next) => {
+  console.log('🌍 === RAW REQUEST DEBUG ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  console.log('Headers:', req.headers);
+  console.log('Origin:', req.headers.origin);
+  console.log('================================');
+  
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    'https://kurerghor.vercel.app',
+    'https://kurerghor-mw8ehoth5-mayerdoa277s-projects.vercel.app',
+    'http://localhost:3000'
+  ];
+  
+  // Set CORS headers only for allowed origins
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-Session-ID, Accept, Origin');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Vary', 'Origin');
+    res.header('Access-Control-Max-Age', '86400');
+  }
+  
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    console.log('🎯 PREFLIGHT REQUEST DETECTED');
+    if (allowedOrigins.includes(origin)) {
+      return res.status(200).end();
+    } else {
+      return res.status(403).end();
+    }
+  }
+  
+  next();
+});
 
 // CORS configuration - MUST come before all other middleware
 const allowedOrigins = [
@@ -66,19 +102,31 @@ const allowedOrigins = [
 
 console.log('🔍 CORS Configuration:');
 console.log('Allowed origins:', allowedOrigins);
+console.log('Environment FRONTEND_URL:', process.env.FRONTEND_URL);
+console.log('Environment VERCEL_URL:', process.env.VERCEL_URL);
+console.log('Environment CORS_ORIGIN:', process.env.CORS_ORIGIN);
 
-// ULTIMATE CORS FIX - Wildcard for Railway
+// ULTIMATE CORS FIX - Specific origins for Railway production
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   console.log(`🔍 ${req.method} ${req.url} from origin: ${origin || 'no-origin'}`);
   
-  // WILDCARD CORS for Railway production
+  // Production - specific origins with credentials
   if (process.env.NODE_ENV === 'production') {
-    console.log('🔥 Using wildcard CORS for production');
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', '*');
-    res.header('Access-Control-Allow-Headers', '*');
-    res.header('Access-Control-Allow-Credentials', 'false');
+    console.log('🔥 Using specific origins CORS for production');
+    const allowedProductionOrigins = [
+      'https://kurerghor.vercel.app',
+      'https://kurerghor-mw8ehoth5-mayerdoa277s-projects.vercel.app'
+    ];
+    
+    if (allowedProductionOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-Session-ID, Accept, Origin');
+      res.header('Access-Control-Allow-Credentials', 'true');
+    } else {
+      console.log('❌ Origin not allowed:', origin);
+    }
   } else {
     // Development - specific origins
     if (allowedOrigins.includes(origin)) {
