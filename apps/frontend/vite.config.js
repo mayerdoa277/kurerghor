@@ -41,12 +41,12 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_API_URL': JSON.stringify(
       process.env.NODE_ENV === 'production' 
-        ? 'https://disciplined-victory.up.railway.app/api/v1' 
+        ? 'https://kurerghor-production.up.railway.app/api/v1' 
         : 'http://localhost:5000/api/v1'
     ),
     'import.meta.env.VITE_API_BASE': JSON.stringify(
       process.env.NODE_ENV === 'production' 
-        ? 'https://disciplined-victory.up.railway.app' 
+        ? 'https://kurerghor-production.up.railway.app' 
         : 'http://localhost:5000'
     )
   }
