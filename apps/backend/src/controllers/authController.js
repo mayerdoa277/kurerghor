@@ -188,11 +188,18 @@ export const googleAuth = async (req, res, next) => {
     const { GOOGLE_CLIENT_ID, GOOGLE_CALLBACK_URL, FRONTEND_URL, VERCEL_URL, PRODUCTION_URL } = process.env;
 
     // Auto-detect callback URL based on environment
-    const callbackUrl = GOOGLE_CALLBACK_URL || 
-                     (FRONT_URL?.includes('localhost') ? 'http://localhost:5000/api/v1/auth/google/callback' :
-                      VERCEL_URL ? `https://kurerghor-production.up.railway.app/api/v1/auth/google/callback` :
-                      PRODUCTION_URL ? 'https://kurerghor.com/api/v1/auth/google/callback' :
+    const callbackUrl = process.env.GOOGLE_CALLBACK_URL || 
+                     (process.env.FRONTEND_URL?.includes('localhost') ? 'http://localhost:5000/api/v1/auth/google/callback' :
+                      process.env.VERCEL_URL ? `https://kurerghor-production.up.railway.app/api/v1/auth/google/callback` :
+                      process.env.PRODUCTION_URL ? 'https://kurerghor.com/api/v1/auth/google/callback' :
                       'https://kurerghor-production.up.railway.app/api/v1/auth/google/callback');
+
+    console.log(`🔧 Environment variables:`);
+    console.log(`GOOGLE_CALLBACK_URL: ${process.env.GOOGLE_CALLBACK_URL}`);
+    console.log(`FRONTEND_URL: ${process.env.FRONTEND_URL}`);
+    console.log(`VERCEL_URL: ${process.env.VERCEL_URL}`);
+    console.log(`PRODUCTION_URL: ${process.env.PRODUCTION_URL}`);
+    console.log(`🎯 Final callback URL: ${callbackUrl}`);
 
     if (!GOOGLE_CLIENT_ID || !callbackUrl) {
       return res.status(500).json({
@@ -233,11 +240,18 @@ export const googleCallback = async (req, res, next) => {
     const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL, FRONTEND_URL, VERCEL_URL, PRODUCTION_URL } = process.env;
 
     // Auto-detect callback URL based on environment
-    const callbackUrl = GOOGLE_CALLBACK_URL || 
-                     (FRONTEND_URL?.includes('localhost') ? 'http://localhost:5000/api/v1/auth/google/callback' :
-                      VERCEL_URL ? `https://kurerghor-production.up.railway.app/api/v1/auth/google/callback` :
-                      PRODUCTION_URL ? 'https://kurerghor.com/api/v1/auth/google/callback' :
+    const callbackUrl = process.env.GOOGLE_CALLBACK_URL || 
+                     (process.env.FRONTEND_URL?.includes('localhost') ? 'http://localhost:5000/api/v1/auth/google/callback' :
+                      process.env.VERCEL_URL ? `https://kurerghor-production.up.railway.app/api/v1/auth/google/callback` :
+                      process.env.PRODUCTION_URL ? 'https://kurerghor.com/api/v1/auth/google/callback' :
                       'https://kurerghor-production.up.railway.app/api/v1/auth/google/callback');
+
+    console.log(`🔧 Environment variables:`);
+    console.log(`GOOGLE_CALLBACK_URL: ${process.env.GOOGLE_CALLBACK_URL}`);
+    console.log(`FRONTEND_URL: ${process.env.FRONTEND_URL}`);
+    console.log(`VERCEL_URL: ${process.env.VERCEL_URL}`);
+    console.log(`PRODUCTION_URL: ${process.env.PRODUCTION_URL}`);
+    console.log(`🎯 Final callback URL: ${callbackUrl}`);
 
     if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !callbackUrl) {
       return res.status(500).json({
