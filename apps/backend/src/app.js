@@ -48,6 +48,14 @@ console.log('Starting server...');
 
 const app = express();
 
+console.log('🔍 ALL Environment Variables:');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
+console.log('VERCEL_URL:', process.env.VERCEL_URL);
+console.log('CORS_ORIGIN:', process.env.CORS_ORIGIN);
+console.log('PORT:', process.env.PORT);
+console.log('REDIS_URL:', process.env.REDIS_URL ? 'SET' : 'NOT SET');
+
 // CORS configuration - MUST come before all other middleware
 const allowedOrigins = [
   process.env.FRONTEND_URL || process.env.VERCEL_URL || process.env.CORS_ORIGIN || 'http://localhost:3000',
@@ -58,9 +66,6 @@ const allowedOrigins = [
 
 console.log('🔍 CORS Configuration:');
 console.log('Allowed origins:', allowedOrigins);
-console.log('Environment FRONTEND_URL:', process.env.FRONTEND_URL);
-console.log('Environment VERCEL_URL:', process.env.VERCEL_URL);
-console.log('Environment CORS_ORIGIN:', process.env.CORS_ORIGIN);
 
 // ULTIMATE CORS FIX - Wildcard for Railway
 app.use((req, res, next) => {

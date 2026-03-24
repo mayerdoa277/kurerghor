@@ -10,6 +10,7 @@
   "variables": {
     "REDIS_URL": "${{ Redis.REDIS_PRIVATE_URL }}",
     "CORS_ORIGIN": "https://kurerghor.vercel.app",
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "FRONTEND_URL": "https://kurerghor.vercel.app"
   }
 }
