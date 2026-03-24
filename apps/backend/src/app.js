@@ -142,11 +142,26 @@ app.get('/api/v1/test', (req, res) => {
   });
 });
 
+// Root route for Railway health check
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Kurerghor API Server',
+    status: 'running',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0'
+  });
+});
+
 // Error handling middleware
 app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
+
+// Debug port info
+console.log(`🔍 Port configuration:`);
+console.log(`Process.PORT: ${process.env.PORT}`);
+console.log(`Using PORT: ${PORT}`);
 
 // Start server
 const startServer = async () => {
