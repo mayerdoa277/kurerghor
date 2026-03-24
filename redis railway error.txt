@@ -1,45 +1,39 @@
-
 You reached the start of the range
-Mar 24, 2026, 4:23 PM
+Mar 24, 2026, 4:35 PM
 Starting Container
-npm warn config production Use `--omit=dev` instead.
-> @ecommerce/backend@1.0.0 start
 > node src/app.js
-🔧 PORT: 5000
-Environment CORS_ORIGIN: https://kurerghor.vercel.app
-🔍 CORS Configuration:
-  'https://kurerghor.vercel.app'
-Allowed origins: [
-]
-  'https://kurerghor.vercel.app',
-Environment FRONTEND_URL: https://kurerghor.vercel.app
-  'https://kurerghor-mw8ehoth5-mayerdoa277s-projects.vercel.app',
-Environment VERCEL_URL: undefined
-  'https://kurerghor-mw8ehoth5-mayerdoa277s-projects.vercel.app/',
 🔍 Environment variables loaded:
-BREVO_API_KEY: EXISTS
-EMAIL_FROM: rafysoleman@gmail.com
+🔧 PORT: 5000
 EMAIL_FROM_NAME: Kurerghor Ecommerce Platform
+🔍 CORS Configuration:
 Starting server...
+npm warn config production Use `--omit=dev` instead.
 � EXPRESS APP STARTING
-🔧 NODE_ENV: production
-🔌 Connecting to MongoDB...
 🚀 Starting server initialization...
-MongoDB Connected: ac-mocvqfe-shard-00-01.wge69r9.mongodb.net
+🔌 Connecting to MongoDB...
+🔧 NODE_ENV: production
+BREVO_API_KEY: EXISTS
+Allowed origins: ["https://kurerghor.vercel.app","https://kurerghor-mw8ehoth5-mayerdoa277s-projects.vercel.app","http://localhost:3000"]
+Environment VERCEL_URL: undefined
+EMAIL_FROM: rafysoleman@gmail.com
+Environment FRONTEND_URL: https://kurerghor.vercel.app
+> @ecommerce/backend@1.0.0 start
+Environment CORS_ORIGIN: https://kurerghor.vercel.app
+MongoDB Connected: ac-mocvqfe-shard-00-02.wge69r9.mongodb.net
 ✅ MongoDB connected
 🔌 Connecting to Redis...
-Redis Client Connected
-✅ Redis connected
-🔧 Initializing email queue...
+🌐 Creating HTTP server...
+🔌 Initializing Socket.io...
+✅ Socket.io initialized
+🚀 Server running on port 5000
 🔧 Initializing email queue with Redis URL: redis://default:THrmMaafvETWptZCguOkIohotTMkopaU@redis.railway.internal:6379
+📱 Environment: production
+🔗 WebSocket server ready
 🔧 Redis URL format: VALID
 🔧 Parsed Redis config: { host: 'redis.railway.internal', port: 6379, hasAuth: true }
 ✅ Email queue created successfully
 ✅ Email worker initialized successfully
 ✅ Email queue initialized
-🌐 Creating HTTP server...
-🔌 Initializing Socket.io...
-✅ Socket.io initialized
-🚀 Server running on port 5000
-📱 Environment: production
-🔗 WebSocket server ready
+Redis Client Connected
+✅ Redis connected
+🔧 Initializing email queue...

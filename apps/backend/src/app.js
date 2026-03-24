@@ -50,9 +50,10 @@ const app = express();
 // CORS Configuration
 console.log('🔍 CORS Configuration:');
 const allowedOrigins = [
+  'http://localhost:3000',
   'https://kurerghor.vercel.app',
   'https://kurerghor-mw8ehoth5-mayerdoa277s-projects.vercel.app',
-  'http://localhost:3000'
+  'https://kurerghor.com'
 ];
 console.log('Allowed origins:', JSON.stringify(allowedOrigins));
 
@@ -65,7 +66,7 @@ app.use(cors({
     if (!origin) return callback(null, true);
     
     // Check if origin is in allowed list
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (allowedOrigins.includes(origin)) {
       console.log('✅ Origin allowed:', origin);
       return callback(null, true);
     } else {
@@ -75,9 +76,19 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Session-ID', 'Accept', 'Origin'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'X-Session-ID',
+    'Accept',
+    'Origin'
+  ],
   optionsSuccessStatus: 200
 }));
+
+// IMPORTANT: Handle preflight requests explicitly
+app.options('*', cors());
 
 // Request logging middleware (after CORS)
 app.use((req, res, next) => {
@@ -119,6 +130,16 @@ app.use('/api/v1/blog', blogRoutes);
 // Health check  
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Debug test endpoint
+app.get('/api/v1/test', (req, res) => {
+  res.json({ 
+    message: 'API working',
+    timestamp: new Date().toISOString(),
+    origin: req.headers.origin,
+    method: req.method
+  });
 });
 
 // Error handling middleware
