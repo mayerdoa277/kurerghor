@@ -47,47 +47,16 @@ console.log('Starting server...');
 
 const app = express();
 
-// CORS Configuration
-console.log('🔍 CORS Configuration:');
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://kurerghor.vercel.app',
-  'https://kurerghor-mw8ehoth5-mayerdoa277s-projects.vercel.app',
-  'https://kurerghor.com'
-];
-console.log('Allowed origins:', JSON.stringify(allowedOrigins));
-
-// SINGLE CORS MIDDLEWARE - Clean approach
+// 🔥 MUST BE FIRST MIDDLEWARE - CORS Configuration
 app.use(cors({
-  origin: function (origin, callback) {
-    console.log(`🔍 CORS check for origin: ${origin}`);
-    
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // Check if origin is in allowed list
-    if (allowedOrigins.includes(origin)) {
-      console.log('✅ Origin allowed:', origin);
-      return callback(null, true);
-    } else {
-      console.log('❌ Origin rejected:', origin);
-      return callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: [
-    'Content-Type',
-    'Authorization',
-    'X-Requested-With',
-    'X-Session-ID',
-    'Accept',
-    'Origin'
+  origin: [
+    'http://localhost:3000',
+    'https://kurerghor.vercel.app',
+    'https://kurerghor.com'
   ],
-  optionsSuccessStatus: 200
+  credentials: true
 }));
 
-// IMPORTANT: Handle preflight requests explicitly
 app.options('*', cors());
 
 // Request logging middleware (after CORS)
@@ -96,8 +65,17 @@ app.use((req, res, next) => {
   next();
 });
 
+// 🔥 Force header (ultimate debug)
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "https://kurerghor.vercel.app");
+  res.header("Access-Control-Allow-Credentials", "true");
+  next();
+});
+
 // Security middleware (AFTER CORS)
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: false
+}));
 app.use(mongoSanitize());
 
 // Rate limiting
