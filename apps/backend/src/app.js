@@ -59,6 +59,27 @@ const allowedOrigins = [
   'https://kurerghor.vercel.app'
 ];
 
+console.log('🔍 CORS Configuration:');
+console.log('Allowed origins:', allowedOrigins);
+console.log('Environment FRONTEND_URL:', process.env.FRONTEND_URL);
+console.log('Environment VERCEL_URL:', process.env.VERCEL_URL);
+
+// Handle preflight requests
+app.options('*', (req, res) => {
+  const origin = req.headers.origin;
+  console.log('🔍 Preflight request from origin:', origin);
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    console.log('✅ CORS headers set for origin:', origin);
+  } else {
+    console.log('❌ Origin not allowed:', origin);
+  }
+  res.sendStatus(200);
+});
+
 app.use(cors({
   origin: allowedOrigins,
   credentials: true,
