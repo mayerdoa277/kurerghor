@@ -185,9 +185,9 @@ export const logout = async (req, res, next) => {
 // @access  Public
 export const googleAuth = async (req, res, next) => {
   try {
-    const { GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI } = process.env;
+    const { GOOGLE_CLIENT_ID, GOOGLE_CALLBACK_URL } = process.env;
 
-    if (!GOOGLE_CLIENT_ID || !GOOGLE_REDIRECT_URI) {
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CALLBACK_URL) {
       return res.status(500).json({
         success: false,
         error: 'Google OAuth not configured'
@@ -196,7 +196,7 @@ export const googleAuth = async (req, res, next) => {
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${GOOGLE_CLIENT_ID}&` +
-      `redirect_uri=${encodeURIComponent(GOOGLE_REDIRECT_URI)}&` +
+      `redirect_uri=${encodeURIComponent(GOOGLE_CALLBACK_URL)}&` +
       `response_type=code&` +
       `scope=${encodeURIComponent('email profile openid')}&` +
       `access_type=offline&` +
@@ -222,9 +222,9 @@ export const googleCallback = async (req, res, next) => {
       });
     }
 
-    const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI } = process.env;
+    const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL } = process.env;
 
-    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REDIRECT_URI) {
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_CALLBACK_URL) {
       return res.status(500).json({
         success: false,
         error: 'Google OAuth not configured'
@@ -236,7 +236,7 @@ export const googleCallback = async (req, res, next) => {
       client_id: GOOGLE_CLIENT_ID,
       client_secret: GOOGLE_CLIENT_SECRET,
       code,
-      redirect_uri: GOOGLE_REDIRECT_URI,
+      redirect_uri: GOOGLE_CALLBACK_URL,
       grant_type: 'authorization_code'
     });
 
@@ -296,7 +296,8 @@ export const googleCallback = async (req, res, next) => {
     await setCache(`user:${user._id}`, user.toJSON(), 3600);
 
     // Redirect to frontend with tokens
-    const redirectUrl = `${process.env.FRONTEND_URL}/auth/callback?token=${accessToken}&refresh=${refreshToken}`;
+    const frontendUrl = process.env.FRONTEND_URL || 'https://kurerghor.vercel.app';
+    const redirectUrl = `${frontendUrl}/auth/callback?token=${accessToken}&refresh=${refreshToken}`;
     res.redirect(redirectUrl);
   } catch (error) {
     console.error('Google OAuth callback error:', error);

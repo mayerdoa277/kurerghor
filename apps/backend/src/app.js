@@ -47,6 +47,9 @@ console.log('Starting server...');
 
 const app = express();
 
+// 🔥 TRUST PROXY FOR RAILWAY
+app.set('trust proxy', 1);
+
 // 🔥 MUST BE FIRST MIDDLEWARE - CORS Configuration
 app.use(cors({
   origin: [
@@ -70,7 +73,7 @@ const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
   message: 'Too many requests from this IP, please try again later.',
-  trustProxy: false, // Fix for Railway proxy issues
+  trustProxy: true, // Now works with app.set('trust proxy', 1)
   skip: (req) => {
     // Skip rate limiting for health checks and Google OAuth
     return req.url === '/health' || req.url.includes('/auth/google');
