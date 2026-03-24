@@ -8,6 +8,8 @@
     "restartPolicyMaxRetries": 10
   },
   "variables": {
-    "REDIS_URL": "${{ Redis.REDIS_PRIVATE_URL }}"
+    "REDIS_URL": "${{ Redis.REDIS_PRIVATE_URL }}",
+    "CORS_ORIGIN": "https://kurerghor.vercel.app",
+    "NODE_ENV": "production"
   }
 }

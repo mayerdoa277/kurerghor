@@ -50,7 +50,7 @@ const app = express();
 
 // CORS configuration - MUST come before all other middleware
 const allowedOrigins = [
-  process.env.FRONTEND_URL || process.env.VERCEL_URL || 'http://localhost:3000',
+  process.env.FRONTEND_URL || process.env.VERCEL_URL || process.env.CORS_ORIGIN || 'http://localhost:3000',
   'https://kurerghor-mw8ehoth5-mayerdoa277s-projects.vercel.app',
   'https://kurerghor-mw8ehoth5-mayerdoa277s-projects.vercel.app/',
   'https://kurerghor.vercel.app'
@@ -60,17 +60,30 @@ console.log('🔍 CORS Configuration:');
 console.log('Allowed origins:', allowedOrigins);
 console.log('Environment FRONTEND_URL:', process.env.FRONTEND_URL);
 console.log('Environment VERCEL_URL:', process.env.VERCEL_URL);
+console.log('Environment CORS_ORIGIN:', process.env.CORS_ORIGIN);
 
-// Force CORS headers for Railway's reverse proxy
+// ULTIMATE CORS FIX - Wildcard for Railway
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   console.log(`🔍 ${req.method} ${req.url} from origin: ${origin || 'no-origin'}`);
   
-  // Always set CORS headers for Railway
-  res.header('Access-Control-Allow-Origin', origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-Session-ID');
-  res.header('Access-Control-Allow-Credentials', 'true');
+  // WILDCARD CORS for Railway production
+  if (process.env.NODE_ENV === 'production') {
+    console.log('🔥 Using wildcard CORS for production');
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', '*');
+    res.header('Access-Control-Allow-Headers', '*');
+    res.header('Access-Control-Allow-Credentials', 'false');
+  } else {
+    // Development - specific origins
+    if (allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-Session-ID');
+      res.header('Access-Control-Allow-Credentials', 'true');
+    }
+  }
+  
   res.header('Vary', 'Origin');
   
   // Handle preflight
