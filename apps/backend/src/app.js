@@ -94,14 +94,13 @@ app.use((req, res, next) => {
 
 // CORS configuration - MUST come before all other middleware
 const allowedOrigins = [
-  process.env.FRONTEND_URL || process.env.VERCEL_URL || process.env.CORS_ORIGIN || 'http://localhost:3000',
+  'https://kurerghor.vercel.app',
   'https://kurerghor-mw8ehoth5-mayerdoa277s-projects.vercel.app',
-  'https://kurerghor-mw8ehoth5-mayerdoa277s-projects.vercel.app/',
-  'https://kurerghor.vercel.app'
+  'http://localhost:3000'
 ];
 
 console.log('🔍 CORS Configuration:');
-console.log('Allowed origins:', allowedOrigins);
+console.log('Allowed origins:', JSON.stringify(allowedOrigins));
 console.log('Environment FRONTEND_URL:', process.env.FRONTEND_URL);
 console.log('Environment VERCEL_URL:', process.env.VERCEL_URL);
 console.log('Environment CORS_ORIGIN:', process.env.CORS_ORIGIN);
