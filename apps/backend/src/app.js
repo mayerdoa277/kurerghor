@@ -61,45 +61,40 @@ console.log('Allowed origins:', allowedOrigins);
 console.log('Environment FRONTEND_URL:', process.env.FRONTEND_URL);
 console.log('Environment VERCEL_URL:', process.env.VERCEL_URL);
 
-// Handle preflight requests FIRST
-app.options('*', (req, res) => {
-  const origin = req.headers.origin;
-  console.log('🔍 Preflight request from origin:', origin);
-  console.log('🔍 Available origins:', allowedOrigins);
-  console.log('🔍 Origin match test:', allowedOrigins.includes(origin));
-  
-  if (allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    console.log('✅ CORS headers set for origin:', origin);
-  } else {
-    console.log('❌ Origin not allowed:', origin);
-    console.log('❌ Available origins were:', allowedOrigins);
-  }
-  res.sendStatus(200);
-});
-
-// Enhanced CORS middleware for all requests
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-    res.header('Access-Control-Allow-Credentials', 'true');
-  }
-  next();
-});
-
-// Standard CORS middleware
-app.use(cors({
-  origin: allowedOrigins,
+// Simple wildcard CORS for production (more reliable)
+const corsOptions = {
+  origin: function (origin, callback) {
+    console.log('🔍 CORS request from origin:', origin);
+    
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      console.log('✅ CORS allowed for origin:', origin);
+      return callback(null, true);
+    } else {
+      console.log('❌ CORS blocked for origin:', origin);
+      console.log('❌ Allowed origins were:', allowedOrigins);
+      return callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+};
+
+// Apply CORS middleware first
+app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly
+app.options('*', cors(corsOptions));
+
+// Log all incoming requests for debugging
+app.use((req, res, next) => {
+  console.log(`🔍 ${req.method} ${req.url} from origin: ${req.headers.origin || 'no-origin'}`);
+  next();
+});
 
 // Security middleware (AFTER CORS)
 app.use(helmet());
