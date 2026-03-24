@@ -59,16 +59,19 @@ app.use(cors({
 
 app.options('*', cors());
 
-// Request logging middleware (after CORS)
+// 🔥 Global request logger (log EVERYTHING)
 app.use((req, res, next) => {
-  console.log(`📝 ${req.method} ${req.url} from origin: ${req.headers.origin || 'no-origin'}`);
+  console.log(`🌐 INCOMING: ${req.method} ${req.url} | Origin: ${req.headers.origin || 'no-origin'} | User-Agent: ${req.headers['user-agent'] || 'unknown'}`);
   next();
 });
 
-// 🔥 Force header (ultimate debug)
+// 🔥 Force debug headers (ULTIMATE DEBUG)
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "https://kurerghor.vercel.app");
   res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, X-Session-ID, Accept, Origin");
+  console.log(`🔧 HEADERS FORCED for ${req.method} ${req.url}`);
   next();
 });
 
@@ -89,6 +92,31 @@ app.use('/api', limiter);
 // Body parser middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// 🔥 TEST ROUTES (for debugging CORS)
+app.get('/api/v1/test', (req, res) => {
+  console.log(`🔧 TEST ROUTE HIT: /api/v1/test`);
+  res.json({ 
+    message: 'API working',
+    timestamp: new Date().toISOString(),
+    origin: req.headers.origin,
+    method: req.method,
+    headers: req.headers
+  });
+});
+
+app.get('/api/v1/cors-test', (req, res) => {
+  console.log(`🔧 CORS TEST ROUTE HIT: /api/v1/cors-test`);
+  res.json({ 
+    message: 'CORS working',
+    timestamp: new Date().toISOString(),
+    origin: req.headers.origin,
+    corsHeaders: {
+      'Access-Control-Allow-Origin': res.get('Access-Control-Allow-Origin'),
+      'Access-Control-Allow-Credentials': res.get('Access-Control-Allow-Credentials')
+    }
+  });
+});
 
 // API Routes
 app.use('/api/v1/auth', authRoutes);
