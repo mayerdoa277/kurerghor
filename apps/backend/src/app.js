@@ -146,23 +146,30 @@ const PORT = process.env.PORT || 5000;
 // Start server
 const startServer = async () => {
   try {
+    console.log('🚀 Starting server initialization...');
+    
     // Connect to database
+    console.log('🔌 Connecting to MongoDB...');
     await connectDB();
     console.log('✅ MongoDB connected');
 
     // Connect to Redis
+    console.log('🔌 Connecting to Redis...');
     await connectRedis();
     console.log('✅ Redis connected');
 
     // Initialize email queue after Redis is connected
+    console.log('🔧 Initializing email queue...');
     const { initializeEmailQueue } = await import('./jobs/emailQueue.js');
     await initializeEmailQueue();
     console.log('✅ Email queue initialized');
 
     // Create HTTP server
+    console.log('🌐 Creating HTTP server...');
     const server = createServer(app);
 
     // Initialize Socket.io
+    console.log('🔌 Initializing Socket.io...');
     initializeSocket(server);
     console.log('✅ Socket.io initialized');
 
@@ -171,8 +178,30 @@ const startServer = async () => {
       console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🔗 WebSocket server ready`);
     });
+
+    // Handle server errors
+    server.on('error', (error) => {
+      console.error('❌ Server error:', error);
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is already in use`);
+      }
+    });
+
+    // Handle uncaught exceptions
+    process.on('uncaughtException', (error) => {
+      console.error('❌ Uncaught Exception:', error);
+      process.exit(1);
+    });
+
+    // Handle unhandled promise rejections
+    process.on('unhandledRejection', (reason, promise) => {
+      console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+      process.exit(1);
+    });
+
   } catch (error) {
     console.error('❌ Failed to start server:', error);
+    console.error('❌ Error stack:', error.stack);
     process.exit(1);
   }
 };
