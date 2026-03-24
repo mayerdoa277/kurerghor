@@ -185,9 +185,16 @@ export const logout = async (req, res, next) => {
 // @access  Public
 export const googleAuth = async (req, res, next) => {
   try {
-    const { GOOGLE_CLIENT_ID, GOOGLE_CALLBACK_URL } = process.env;
+    const { GOOGLE_CLIENT_ID, GOOGLE_CALLBACK_URL, FRONTEND_URL, VERCEL_URL, PRODUCTION_URL } = process.env;
 
-    if (!GOOGLE_CLIENT_ID || !GOOGLE_CALLBACK_URL) {
+    // Auto-detect callback URL based on environment
+    const callbackUrl = GOOGLE_CALLBACK_URL || 
+                     (FRONT_URL?.includes('localhost') ? 'http://localhost:5000/api/v1/auth/google/callback' :
+                      VERCEL_URL ? `https://kurerghor-production.up.railway.app/api/v1/auth/google/callback` :
+                      PRODUCTION_URL ? 'https://kurerghor.com/api/v1/auth/google/callback' :
+                      'https://kurerghor-production.up.railway.app/api/v1/auth/google/callback');
+
+    if (!GOOGLE_CLIENT_ID || !callbackUrl) {
       return res.status(500).json({
         success: false,
         error: 'Google OAuth not configured'
@@ -196,12 +203,13 @@ export const googleAuth = async (req, res, next) => {
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${GOOGLE_CLIENT_ID}&` +
-      `redirect_uri=${encodeURIComponent(GOOGLE_CALLBACK_URL)}&` +
+      `redirect_uri=${encodeURIComponent(callbackUrl)}&` +
       `response_type=code&` +
       `scope=${encodeURIComponent('email profile openid')}&` +
       `access_type=offline&` +
       `prompt=consent`;
 
+    console.log(`🔗 Google OAuth URL: ${authUrl}`);
     res.redirect(authUrl);
   } catch (error) {
     next(error);
@@ -222,9 +230,16 @@ export const googleCallback = async (req, res, next) => {
       });
     }
 
-    const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL } = process.env;
+    const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL, FRONTEND_URL, VERCEL_URL, PRODUCTION_URL } = process.env;
 
-    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_CALLBACK_URL) {
+    // Auto-detect callback URL based on environment
+    const callbackUrl = GOOGLE_CALLBACK_URL || 
+                     (FRONTEND_URL?.includes('localhost') ? 'http://localhost:5000/api/v1/auth/google/callback' :
+                      VERCEL_URL ? `https://kurerghor-production.up.railway.app/api/v1/auth/google/callback` :
+                      PRODUCTION_URL ? 'https://kurerghor.com/api/v1/auth/google/callback' :
+                      'https://kurerghor-production.up.railway.app/api/v1/auth/google/callback');
+
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !callbackUrl) {
       return res.status(500).json({
         success: false,
         error: 'Google OAuth not configured'
@@ -236,7 +251,7 @@ export const googleCallback = async (req, res, next) => {
       client_id: GOOGLE_CLIENT_ID,
       client_secret: GOOGLE_CLIENT_SECRET,
       code,
-      redirect_uri: GOOGLE_CALLBACK_URL,
+      redirect_uri: callbackUrl,
       grant_type: 'authorization_code'
     });
 
@@ -296,8 +311,12 @@ export const googleCallback = async (req, res, next) => {
     await setCache(`user:${user._id}`, user.toJSON(), 3600);
 
     // Redirect to frontend with tokens
-    const frontendUrl = process.env.FRONTEND_URL || 'https://kurerghor.vercel.app';
+    const frontendUrl = process.env.FRONTEND_URL || 
+                      process.env.VERCEL_URL || 
+                      process.env.PRODUCTION_URL || 
+                      'https://kurerghor.vercel.app';
     const redirectUrl = `${frontendUrl}/auth/callback?token=${accessToken}&refresh=${refreshToken}`;
+    console.log(`🔄 Redirecting to: ${redirectUrl}`);
     res.redirect(redirectUrl);
   } catch (error) {
     console.error('Google OAuth callback error:', error);
