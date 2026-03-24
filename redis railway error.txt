@@ -1,39 +1,49 @@
 You reached the start of the range
-Mar 24, 2026, 4:35 PM
-Starting Container
-> node src/app.js
-🔍 Environment variables loaded:
-🔧 PORT: 5000
-EMAIL_FROM_NAME: Kurerghor Ecommerce Platform
-🔍 CORS Configuration:
-Starting server...
+Mar 25, 2026, 2:45 AM
 npm warn config production Use `--omit=dev` instead.
-� EXPRESS APP STARTING
+> @ecommerce/backend@1.0.0 start
+> node src/app.js
+Starting Container
+🔍 Environment variables loaded:
+BREVO_API_KEY: EXISTS
+EMAIL_FROM: rafysoleman@gmail.com
+EMAIL_FROM_NAME: Kurerghor Ecommerce Platform
+Starting server...
+🔍 Port configuration:
+Process.PORT: 5000
+Using PORT: 5000
 🚀 Starting server initialization...
 🔌 Connecting to MongoDB...
-🔧 NODE_ENV: production
-BREVO_API_KEY: EXISTS
-Allowed origins: ["https://kurerghor.vercel.app","https://kurerghor-mw8ehoth5-mayerdoa277s-projects.vercel.app","http://localhost:3000"]
-Environment VERCEL_URL: undefined
-EMAIL_FROM: rafysoleman@gmail.com
-Environment FRONTEND_URL: https://kurerghor.vercel.app
-> @ecommerce/backend@1.0.0 start
-Environment CORS_ORIGIN: https://kurerghor.vercel.app
-MongoDB Connected: ac-mocvqfe-shard-00-02.wge69r9.mongodb.net
 ✅ MongoDB connected
 🔌 Connecting to Redis...
-🌐 Creating HTTP server...
-🔌 Initializing Socket.io...
-✅ Socket.io initialized
-🚀 Server running on port 5000
+Redis Client Connected
+✅ Redis connected
+🔧 Initializing email queue...
 🔧 Initializing email queue with Redis URL: redis://default:THrmMaafvETWptZCguOkIohotTMkopaU@redis.railway.internal:6379
-📱 Environment: production
-🔗 WebSocket server ready
 🔧 Redis URL format: VALID
 🔧 Parsed Redis config: { host: 'redis.railway.internal', port: 6379, hasAuth: true }
 ✅ Email queue created successfully
 ✅ Email worker initialized successfully
-✅ Email queue initialized
-Redis Client Connected
-✅ Redis connected
-🔧 Initializing email queue...
+🔌 Initializing Socket.io...
+🚀 Server running on port 5000
+📱 Environment: production
+🔗 WebSocket server ready
+🌐 INCOMING: GET /health | Origin: no-origin | User-Agent: RailwayHealthCheck/1.0
+🔧 HEADERS FORCED for GET /health
+🌐 INCOMING: GET /api/v1/auth/google | Origin: no-origin | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36
+🔧 HEADERS FORCED for GET /api/v1/auth/google
+    at Object.keyGenerator (file:///app/node_modules/express-rate-limit/dist/index.mjs:630:20)
+    at file:///app/node_modules/express-rate-limit/dist/index.mjs:682:32
+    at async file:///app/node_modules/express-rate-limit/dist/index.mjs:663:5 {
+  code: 'ERR_ERL_UNEXPECTED_X_FORWARDED_FOR',
+}
+🌐 INCOMING: GET /api/v1/products?sortBy=rating&limit=8 | Origin: https://kurerghor.vercel.app | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36
+🔧 HEADERS FORCED for GET /api/v1/products?sortBy=rating&limit=8
+🌐 INCOMING: GET /api/v1/products/flash-sale/list?limit=4 | Origin: https://kurerghor.vercel.app | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36
+🔧 HEADERS FORCED for GET /api/v1/products/flash-sale/list?limit=4
+🌐 INCOMING: GET /api/v1/products/featured/list?limit=8 | Origin: https://kurerghor.vercel.app | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36
+🔧 HEADERS FORCED for GET /api/v1/products/featured/list?limit=8
+🌐 INCOMING: GET /api/v1/categories | Origin: https://kurerghor.vercel.app | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36
+🔧 HEADERS FORCED for GET /api/v1/categories
+🌐 INCOMING: GET /api/v1/auth/google | Origin: no-origin | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36
+🔧 HEADERS FORCED for GET /api/v1/auth/google
