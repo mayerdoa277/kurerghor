@@ -8,9 +8,10 @@ import {
   Trash2, 
   Plus,
   MoreHorizontal,
-  Package
+  Package,
+  RefreshCw
 } from 'lucide-react'
-import { useQuery } from 'react-query'
+import { useQuery, useQueryClient } from 'react-query'
 import { adminAPI } from '../../services/api'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import Pagination from '../../components/Pagination'
@@ -20,17 +21,15 @@ const AdminCategories = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
 
-  const { data: categoriesData, isLoading } = useQuery(
+  const queryClient = useQueryClient()
+
+  const { data: categoriesData, isLoading, refetch } = useQuery(
     ['adminCategories', currentPage, searchQuery, statusFilter],
-    () => adminAPI.getCategories({
-      page: currentPage,
-      search: searchQuery,
-      status: statusFilter
-    }),
+    () => adminAPI.getCategories(),
     { staleTime: 30 * 1000 }
   )
 
-  const categories = categoriesData?.data?.categories || []
+  const categories = Array.isArray(categoriesData?.data?.data) ? categoriesData.data.data : []
   const pagination = categoriesData?.data?.pagination
 
   const statusOptions = [
@@ -57,13 +56,24 @@ const AdminCategories = () => {
           <p className="text-gray-600">{categories.length} categories</p>
         </div>
         
-        <Link 
-          to="/admin/categories/new"
-          className="btn-primary flex items-center space-x-2"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Category</span>
-        </Link>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => refetch()}
+            className="btn-outline flex items-center space-x-2"
+            title="Refresh categories"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Refresh</span>
+          </button>
+          
+          <Link 
+            to="/admin/categories/new"
+            className="btn-primary flex items-center space-x-2"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Category</span>
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
@@ -163,12 +173,12 @@ const AdminCategories = () => {
                       
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(category.status)}`}>
-                          {category.status.charAt(0).toUpperCase() + category.status.slice(1)}
+                          {category.status ? category.status.charAt(0).toUpperCase() + category.status.slice(1) : 'Unknown'}
                         </span>
                       </td>
                       
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(category.createdAt).toLocaleDateString()}
+                        {category.createdAt ? new Date(category.createdAt).toLocaleDateString() : 'N/A'}
                       </td>
                       
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

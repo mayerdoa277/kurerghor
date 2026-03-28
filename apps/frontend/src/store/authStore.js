@@ -11,6 +11,7 @@ const useAuthStore = create(
       refreshToken: null,
       isLoading: false,
       isAuthenticated: false,
+      vendorRequestStatus: null,
 
       // Actions
       login: async (credentials) => {
@@ -162,8 +163,10 @@ const useAuthStore = create(
         }
       },
 
-      setAuth: (token, refreshToken) => {
+      setAuth: (authData) => {
+        const { user, token, refreshToken } = authData
         set({
+          user,
           token,
           refreshToken,
           isAuthenticated: true
@@ -183,6 +186,32 @@ const useAuthStore = create(
         })
 
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      },
+
+      // Vendor request status management
+      fetchVendorRequestStatus: async () => {
+        try {
+          const response = await api.get('/users/vendor-request-status')
+          set({ vendorRequestStatus: response.data.data })
+          return response.data.data
+        } catch (error) {
+          console.error('Error fetching vendor request status:', error)
+          return null
+        }
+      },
+
+      clearVendorRequestStatus: () => {
+        set({ vendorRequestStatus: null })
+      },
+
+      // Update user data (called after vendor role change)
+      updateUserRole: (newRole) => {
+        const currentUser = get().user
+        if (currentUser) {
+          set({
+            user: { ...currentUser, role: newRole }
+          })
+        }
       }
     }),
     {

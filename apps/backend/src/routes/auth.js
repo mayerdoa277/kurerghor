@@ -1,7 +1,8 @@
 import express from 'express';
 import { register, login, refreshToken, logout, googleAuth, googleCallback, getMe, forgotPassword, verifyOTP, verifyEmail, resetPassword } from '../controllers/authController.js';
+import { adminLogin, adminVerifyOTP, adminResendOTP, getAdminEmails } from '../controllers/adminAuthController.js';
 import { protect } from '../middlewares/auth.js';
-import { validate, registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from '../utils/validation.js';
+import { validate, validateWithContext, registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema, adminLoginSchema, adminOTPSchema, resendOTPSchema } from '../utils/validation.js';
 
 const router = express.Router();
 
@@ -11,6 +12,12 @@ router.post('/login', validate(loginSchema), login);
 router.post('/refresh', refreshToken);
 router.get('/google', googleAuth);
 router.get('/google/callback', googleCallback);
+
+// Public routes - Admin auth with OTP
+router.post('/admin-login', validate(adminLoginSchema), adminLogin);
+router.post('/admin-verify-otp', validate(adminOTPSchema), adminVerifyOTP);
+router.post('/admin-resend-otp', validate(resendOTPSchema), adminResendOTP);
+router.get('/admin-emails', getAdminEmails); // Development only
 
 // Public routes - Email auth
 router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);

@@ -3,6 +3,8 @@ import Product from '../models/Product.js';
 import { protect, authorize, optionalAuth } from '../middlewares/auth.js';
 import { validate, createProductSchema, updateProductSchema } from '../utils/validation.js';
 import { getCache, setCache, deleteCachePattern } from '../config/redis.js';
+import { handleImageUpload, handleMultipleImageUpload } from '../middlewares/uploadMiddleware.js';
+import { getDefaultUploadService } from '../services/uploadService.js';
 
 const router = express.Router();
 
@@ -133,12 +135,35 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
 // @desc    Create product
 // @route   POST /api/v1/products
 // @access  Private (Vendor/Admin)
-router.post('/', protect, authorize('vendor', 'admin'), validate(createProductSchema), async (req, res, next) => {
+router.post('/', protect, authorize('vendor', 'admin'), handleMultipleImageUpload, validate(createProductSchema), async (req, res, next) => {
   try {
     const productData = {
       ...req.body,
       vendor: req.user._id
     };
+
+    // Handle image uploads
+    if (req.files && req.files.length > 0) {
+      const uploadService = await getDefaultUploadService();
+      const uploadedImages = [];
+
+      // Upload each image
+      for (const file of req.files) {
+        const uploadResult = await uploadService.uploadFile(
+          file.buffer,
+          file.originalname,
+          'products'
+        );
+        
+        uploadedImages.push({
+          url: uploadResult.url,
+          alt: req.body.imageAlt || productData.name,
+          isMain: uploadedImages.length === 0 // First image is main
+        });
+      }
+
+      productData.images = uploadedImages;
+    }
 
     const product = await Product.create(productData);
     
@@ -157,7 +182,7 @@ router.post('/', protect, authorize('vendor', 'admin'), validate(createProductSc
 // @desc    Update product
 // @route   PUT /api/v1/products/:id
 // @access  Private (Vendor/Admin)
-router.put('/:id', protect, authorize('vendor', 'admin'), validate(updateProductSchema), async (req, res, next) => {
+router.put('/:id', protect, authorize('vendor', 'admin'), handleMultipleImageUpload, validate(updateProductSchema), async (req, res, next) => {
   try {
     const { id } = req.params;
     
@@ -178,7 +203,37 @@ router.put('/:id', protect, authorize('vendor', 'admin'), validate(updateProduct
       });
     }
 
-    product = await Product.findByIdAndUpdate(id, req.body, {
+    const updateData = { ...req.body };
+
+    // Handle new image uploads
+    if (req.files && req.files.length > 0) {
+      const uploadService = await getDefaultUploadService();
+      const uploadedImages = [];
+
+      // Upload each new image
+      for (const file of req.files) {
+        const uploadResult = await uploadService.uploadFile(
+          file.buffer,
+          file.originalname,
+          'products'
+        );
+        
+        uploadedImages.push({
+          url: uploadResult.url,
+          alt: req.body.imageAlt || product.name,
+          isMain: uploadedImages.length === 0 && (!product.images || product.images.length === 0)
+        });
+      }
+
+      // Combine with existing images if any
+      if (product.images && product.images.length > 0) {
+        updateData.images = [...product.images, ...uploadedImages];
+      } else {
+        updateData.images = uploadedImages;
+      }
+    }
+
+    product = await Product.findByIdAndUpdate(id, updateData, {
       new: true,
       runValidators: true
     });

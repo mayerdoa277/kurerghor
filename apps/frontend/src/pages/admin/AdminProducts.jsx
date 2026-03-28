@@ -8,7 +8,8 @@ import {
   Edit, 
   Trash2,
   MoreHorizontal,
-  AlertCircle
+  AlertCircle,
+  Plus
 } from 'lucide-react'
 import { useQuery } from 'react-query'
 import { adminAPI } from '../../services/api'
@@ -32,8 +33,15 @@ const AdminProducts = () => {
     { staleTime: 30 * 1000 }
   )
 
+  const { data: vendorsData } = useQuery(
+    'adminVendorsForFilter',
+    () => adminAPI.getVendors({ page: 1, limit: 100 }),
+    { staleTime: 30 * 1000 }
+  )
+
   const products = productsData?.data?.products || []
   const pagination = productsData?.data?.pagination
+  const vendors = vendorsData?.data?.vendors || []
 
   const statusOptions = [
     { value: '', label: 'All Status' },
@@ -58,8 +66,20 @@ const AdminProducts = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Manage Products</h1>
-        <p className="text-gray-600">{products.length} products</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Manage Products</h1>
+            <p className="text-gray-600">{products.length} products</p>
+          </div>
+          
+          <Link 
+            to="/admin/products/add"
+            className="btn-primary flex items-center space-x-2"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Product</span>
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
@@ -93,9 +113,11 @@ const AdminProducts = () => {
             className="input"
           >
             <option value="">All Vendors</option>
-            {/* In a real implementation, this would be populated with actual vendors */}
-            <option value="vendor1">Vendor 1</option>
-            <option value="vendor2">Vendor 2</option>
+            {vendors.map((vendor) => (
+              <option key={vendor._id} value={vendor._id}>
+                {vendor.storeName || vendor.owner?.name || 'Unknown Vendor'}
+              </option>
+            ))}
           </select>
         </div>
       </div>

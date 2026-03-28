@@ -219,3 +219,229 @@ export const createCouponSchema = Joi.object({
   startDate: Joi.date().optional(),
   endDate: Joi.date().required()
 });
+
+// Admin authentication schemas
+export const adminLoginSchema = Joi.object({
+  email: Joi.string()
+    .required()
+    .email()
+    .messages({
+      'string.empty': 'Email is required',
+      'string.email': 'Please provide a valid email'
+    }),
+  password: Joi.string()
+    .required()
+    .messages({
+      'string.empty': 'Password is required'
+    })
+});
+
+export const adminOTPSchema = Joi.object({
+  adminId: Joi.string()
+    .required()
+    .pattern(/^[0-9a-fA-F]{24}$/)
+    .messages({
+      'string.empty': 'Admin ID is required',
+      'string.pattern.base': 'Invalid Admin ID format'
+    }),
+  otp: Joi.string()
+    .required()
+    .length(6)
+    .pattern(/^\d{6}$/)
+    .messages({
+      'string.empty': 'OTP is required',
+      'string.length': 'OTP must be exactly 6 digits',
+      'string.pattern.base': 'OTP must contain only numbers'
+    })
+});
+
+export const resendOTPSchema = Joi.object({
+  adminId: Joi.string()
+    .required()
+    .pattern(/^[0-9a-fA-F]{24}$/)
+    .messages({
+      'string.empty': 'Admin ID is required',
+      'string.pattern.base': 'Invalid Admin ID format'
+    })
+});
+
+// Vendor request validation
+export const vendorRequestSchema = Joi.object({
+  shopName: Joi.string()
+    .required()
+    .trim()
+    .min(2)
+    .max(100)
+    .messages({
+      'string.empty': 'Shop name is required',
+      'string.min': 'Shop name must be at least 2 characters',
+      'string.max': 'Shop name cannot exceed 100 characters'
+    }),
+  shopDescription: Joi.string()
+    .required()
+    .trim()
+    .min(10)
+    .max(1000)
+    .messages({
+      'string.empty': 'Shop description is required',
+      'string.min': 'Shop description must be at least 10 characters',
+      'string.max': 'Shop description cannot exceed 1000 characters'
+    }),
+  shopAddress: Joi.string()
+    .required()
+    .trim()
+    .min(10)
+    .max(500)
+    .messages({
+      'string.empty': 'Shop address is required',
+      'string.min': 'Shop address must be at least 10 characters',
+      'string.max': 'Shop address cannot exceed 500 characters'
+    }),
+  shopPhone: Joi.string()
+    .required()
+    .pattern(/^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$/)
+    .messages({
+      'string.empty': 'Shop phone is required',
+      'string.pattern.base': 'Please provide a valid phone number'
+    }),
+  shopEmail: Joi.string()
+    .required()
+    .email()
+    .messages({
+      'string.empty': 'Shop email is required',
+      'string.email': 'Please provide a valid email'
+    }),
+  businessType: Joi.string()
+    .optional()
+    .valid('individual', 'company', 'partnership')
+    .default('individual')
+    .messages({
+      'any.only': 'Business type must be one of: individual, company, partnership'
+    }),
+  taxId: Joi.string()
+    .optional()
+    .trim()
+    .max(50)
+    .messages({
+      'string.max': 'Tax ID cannot exceed 50 characters'
+    }),
+  documents: Joi.array()
+    .optional()
+    .items(Joi.string().uri())
+    .messages({
+      'array.items': 'Documents must be valid URLs'
+    })
+});
+
+// Admin review validation
+export const vendorReviewSchema = Joi.object({
+  reviewNotes: Joi.string()
+    .optional()
+    .trim()
+    .max(500)
+    .messages({
+      'string.max': 'Review notes cannot exceed 500 characters'
+    }),
+  rejectionReason: Joi.string()
+    .when('$action', {
+      is: 'reject',
+      then: Joi.string().required().trim().min(5).max(500),
+      otherwise: Joi.string().optional()
+    })
+    .messages({
+      'string.empty': 'Rejection reason is required',
+      'string.min': 'Rejection reason must be at least 5 characters',
+      'string.max': 'Rejection reason cannot exceed 500 characters'
+    })
+});
+
+// Query parameter validation
+export const paginationSchema = Joi.object({
+  page: Joi.number()
+    .optional()
+    .integer()
+    .min(1)
+    .default(1)
+    .messages({
+      'number.base': 'Page must be a number',
+      'number.integer': 'Page must be an integer',
+      'number.min': 'Page must be at least 1'
+    }),
+  limit: Joi.number()
+    .optional()
+    .integer()
+    .min(1)
+    .max(100)
+    .default(10)
+    .messages({
+      'number.base': 'Limit must be a number',
+      'number.integer': 'Limit must be an integer',
+      'number.min': 'Limit must be at least 1',
+      'number.max': 'Limit cannot exceed 100'
+    }),
+  search: Joi.string()
+    .optional()
+    .trim()
+    .max(100)
+    .messages({
+      'string.max': 'Search term cannot exceed 100 characters'
+    }),
+  status: Joi.string()
+    .optional()
+    .valid('pending', 'approved', 'rejected', 'all')
+    .default('pending')
+    .messages({
+      'any.only': 'Status must be one of: pending, approved, rejected, all'
+    })
+});
+
+// Enhanced validation middleware with context support
+export const validateWithContext = (schema, context = {}) => {
+  return (req, res, next) => {
+    const { error, value } = schema.validate(req.body, { 
+      abortEarly: false,
+      context: { ...context, $action: req.body.action }
+    });
+
+    if (error) {
+      const errors = error.details.map(detail => ({
+        field: detail.path.join('.'),
+        message: detail.message
+      }));
+
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors
+      });
+    }
+
+    req.body = value;
+    next();
+  };
+};
+
+// Query validation middleware
+export const validateQuery = (schema) => {
+  return (req, res, next) => {
+    const { error, value } = schema.validate(req.query, { 
+      abortEarly: false 
+    });
+
+    if (error) {
+      const errors = error.details.map(detail => ({
+        field: detail.path.join('.'),
+        message: detail.message
+      }));
+
+      return res.status(400).json({
+        success: false,
+        error: 'Query validation failed',
+        details: errors
+      });
+    }
+
+    req.query = value;
+    next();
+  };
+};

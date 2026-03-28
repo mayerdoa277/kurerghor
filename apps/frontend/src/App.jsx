@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useAuthStore } from './store/authStore'
 import { useCartStore } from './store/cartStore'
@@ -28,7 +28,10 @@ import BlogDetailPage from './pages/BlogDetailPage'
 import ContactPage from './pages/ContactPage'
 import AboutPage from './pages/AboutPage'
 import FAQPage from './pages/FAQPage'
+import BecomeVendorPage from './pages/BecomeVendorPage'
 import NotFoundPage from './pages/NotFoundPage'
+import VendorSettingsPage from './pages/VendorSettingsPage'
+import SettingsPage from './pages/SettingsPage'
 
 // Auth protected pages
 import VendorDashboard from './pages/vendor/VendorDashboard'
@@ -36,13 +39,18 @@ import VendorProducts from './pages/vendor/VendorProducts'
 import VendorOrders from './pages/vendor/VendorOrders'
 import VendorEarnings from './pages/vendor/VendorEarnings'
 import VendorProfile from './pages/vendor/VendorProfile'
+import VendorProductAdd from './pages/vendor/VendorProductAdd'
 
 import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminLogin from './pages/admin/AdminLogin'
 import AdminUsers from './pages/admin/AdminUsers'
+import AdminUserDetail from './pages/admin/AdminUserDetail'
 import AdminProducts from './pages/admin/AdminProducts'
+import AdminProductAdd from './pages/admin/AdminProductAdd'
 import AdminOrders from './pages/admin/AdminOrders'
 import AdminVendors from './pages/admin/AdminVendors'
 import AdminCategories from './pages/admin/AdminCategories'
+import AdminCategoryNew from './pages/admin/AdminCategoryNew'
 import AdminCoupons from './pages/admin/AdminCoupons'
 import AdminAnalytics from './pages/admin/AdminAnalytics'
 import AdminSettings from './pages/admin/AdminSettings'
@@ -79,6 +87,7 @@ function App() {
 
         {/* Auth routes */}
         <Route path="/login" element={<Login />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-otp" element={<VerifyOTP />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -88,15 +97,20 @@ function App() {
         {/* Protected user routes */}
         <Route path="/" element={<Layout />}>
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings/vendor" element={<VendorSettingsPage />} />
           <Route path="orders" element={<OrdersPage />} />
           <Route path="orders/:id" element={<OrderDetailPage />} />
           <Route path="wishlist" element={<WishlistPage />} />
+          <Route path="become-vendor" element={<BecomeVendorPage />} />
         </Route>
 
         {/* Vendor routes */}
         <Route path="/vendor" element={<Layout requiredRole="vendor" />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<VendorDashboard />} />
           <Route path="products" element={<VendorProducts />} />
+          <Route path="products/add" element={<VendorProductAdd />} />
           <Route path="orders" element={<VendorOrders />} />
           <Route path="earnings" element={<VendorEarnings />} />
           <Route path="profile" element={<VendorProfile />} />
@@ -104,12 +118,16 @@ function App() {
 
         {/* Admin routes */}
         <Route path="/admin" element={<Layout requiredRole="admin" />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsers />} />
+          <Route path="users/:id" element={<AdminUserDetail />} />
           <Route path="vendors" element={<AdminVendors />} />
           <Route path="products" element={<AdminProducts />} />
+          <Route path="products/add" element={<AdminProductAdd />} />
           <Route path="orders" element={<AdminOrders />} />
           <Route path="categories" element={<AdminCategories />} />
+          <Route path="categories/new" element={<AdminCategoryNew />} />
           <Route path="coupons" element={<AdminCoupons />} />
           <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="settings" element={<AdminSettings />} />

@@ -21,12 +21,22 @@ export const register = async (req, res, next) => {
       });
     }
 
+    // Check if this email is in admin list
+    const adminEmails = process.env.ADMIN_EMAILS ? 
+      process.env.ADMIN_EMAILS.split(',').map(e => e.trim().toLowerCase()) : 
+      []; // No default admin emails - must be set in .env
+    
+    const isAdmin = adminEmails.includes(email.toLowerCase());
+    const userRole = isAdmin ? 'admin' : 'user';
+
     // Create user
     const user = await User.create({
       name,
       email,
       password,
-      phone
+      phone,
+      role: userRole,
+      isEmailVerified: isAdmin // Auto-verify admin emails
     });
 
     // Generate tokens
@@ -42,6 +52,9 @@ export const register = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
+      message: isAdmin ? 
+        'Admin account created successfully! Please check your email for OTP verification.' : 
+        'User registered successfully!',
       data: {
         user: user.toJSON(),
         accessToken,

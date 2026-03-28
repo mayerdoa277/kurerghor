@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { User, ChevronDown, Settings, LogOut, Package, Heart, ShoppingBag } from 'lucide-react'
+import { User, ChevronDown, Settings, LogOut, Package, Heart, ShoppingBag, Store } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 
 const UserDropdown = () => {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef(null)
-  const { user, isAuthenticated, logout } = useAuthStore()
+  const { user, isAuthenticated, logout, vendorRequestStatus, fetchVendorRequestStatus } = useAuthStore()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -19,6 +19,16 @@ const UserDropdown = () => {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      if (isAuthenticated && user?.role !== 'vendor') {
+        await fetchVendorRequestStatus()
+      }
+    }
+
+    fetchStatus()
+  }, [isAuthenticated, user, fetchVendorRequestStatus])
 
   const handleLogout = () => {
     logout()
@@ -88,14 +98,44 @@ const UserDropdown = () => {
               <span>Wishlist</span>
             </Link>
 
-            {user?.role === 'vendor' && (
+            {/* Vendor menu item - conditional based on status */}
+            {user?.role === 'vendor' ? (
               <Link
                 to="/vendor/dashboard"
                 className="flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
                 onClick={() => setIsOpen(false)}
               >
-                <ShoppingBag className="w-4 h-4" />
-                <span>Vendor Dashboard</span>
+                <Store className="w-4 h-4" />
+                <span>Vendor Panel</span>
+              </Link>
+            ) : vendorRequestStatus?.hasRequest ? (
+              vendorRequestStatus.request.status === 'pending' ? (
+                <Link
+                  to="/become-vendor"
+                  className="flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Store className="w-4 h-4" />
+                  <span>Application Pending</span>
+                </Link>
+              ) : vendorRequestStatus.request.status === 'rejected' ? (
+                <Link
+                  to="/become-vendor"
+                  className="flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Store className="w-4 h-4" />
+                  <span>Become a Vendor</span>
+                </Link>
+              ) : null
+            ) : (
+              <Link
+                to="/become-vendor"
+                className="flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                <Store className="w-4 h-4" />
+                <span>Become a Vendor</span>
               </Link>
             )}
 

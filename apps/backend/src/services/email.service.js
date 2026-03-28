@@ -308,5 +308,82 @@ export const emailTemplates = {
     </body>
     </html>
   `;
+  },
+
+  adminOTP: (name, otp, email) => {
+    const clientUrl = process.env.FRONTEND_URL || 
+                     process.env.VERCEL_URL || 
+                     'http://localhost:3000';
+    const adminLoginUrl = `${clientUrl}/admin/verify-otp?email=${encodeURIComponent(email)}`;
+    
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Admin Login - OTP Verification</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #dc2626; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 40px 30px; border-radius: 0 0 8px 8px; }
+        .button { display: inline-block; background: #dc2626; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+        .otp-box { background: #fef2f2; border: 2px solid #fca5a5; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; }
+        .otp-code { font-size: 36px; font-weight: bold; color: #dc2626; letter-spacing: 6px; margin: 15px 0; }
+        .security-notice { background: #fee2e2; border: 1px solid #fca5a5; padding: 15px; border-radius: 6px; margin: 20px 0; }
+        .admin-notice { background: #fef3c7; border: 1px solid #f59e0b; padding: 15px; border-radius: 6px; margin: 20px 0; }
+        .timestamp { color: #6b7280; font-size: 14px; text-align: center; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🔐 Admin Login Verification</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${name},</p>
+          <p>A login attempt was made for your admin account. Use the OTP code below to verify your identity:</p>
+          
+          <div class="otp-box">
+            <div class="otp-code">${otp}</div>
+            <p><strong>Your One-Time Password:</strong> ${otp}</p>
+          </div>
+          
+          <div class="admin-notice">
+            <strong>⚠️ Admin Access Notice:</strong>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li>This code provides access to administrative functions</li>
+              <li>Only enter this code on the official admin portal</li>
+              <li>Verify the URL matches: <code>${clientUrl}</code></li>
+            </ul>
+          </div>
+          
+          <p><strong>Quick Verification:</strong> <a href="${adminLoginUrl}" class="button">Verify OTP Now</a></p>
+          <p>If button doesn't work, copy and paste this link into your browser:</p>
+          <p style="word-break: break-all; color: #dc2626;">${adminLoginUrl}</p>
+          
+          <div class="security-notice">
+            <strong>🛡️ Security Information:</strong>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li>This OTP expires in <strong>5 minutes</strong></li>
+              <li>If you didn't request this login, contact security immediately</li>
+              <li>Never share this code with anyone</li>
+              <li>Admin access is logged and monitored</li>
+            </ul>
+          </div>
+          
+          <div class="timestamp">
+            Requested at: ${new Date().toLocaleString()}
+          </div>
+        </div>
+        <div class="footer" style="text-align: center; padding: 20px; color: #6b7280; font-size: 14px;">
+          <p>&copy; 2024 Kurerghor Admin Panel. All rights reserved.</p>
+          <p style="color: #dc2626; font-weight: bold;">This is a secure admin communication</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
   }
 };

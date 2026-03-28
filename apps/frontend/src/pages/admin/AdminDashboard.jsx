@@ -9,7 +9,8 @@ import {
   Store,
   UserCheck,
   AlertCircle,
-  MoreHorizontal
+  MoreHorizontal,
+  Home
 } from 'lucide-react'
 import { useQuery } from 'react-query'
 import { adminAPI } from '../../services/api'
@@ -25,7 +26,7 @@ const AdminDashboard = () => {
     { staleTime: 5 * 60 * 1000 }
   )
 
-  const dashboard = dashboardData?.data
+  const dashboard = dashboardData?.data?.data
 
   const timeRanges = [
     { value: '7d', label: 'Last 7 days' },
@@ -50,23 +51,35 @@ const AdminDashboard = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
           <p className="text-gray-600">Platform overview and management</p>
         </div>
         
-        <select
-          value={timeRange}
-          onChange={(e) => setTimeRange(e.target.value)}
-          className="input"
-        >
-          {timeRanges.map((range) => (
-            <option key={range.value} value={range.value}>
-              {range.label}
-            </option>
-          ))}
-        </select>
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* Home Button */}
+          <Link 
+            to="/"
+            className="inline-flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 whitespace-nowrap"
+          >
+            <Home className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden sm:inline">Go Home</span>
+            <span className="sm:hidden">Home</span>
+          </Link>
+          
+          <select
+            value={timeRange}
+            onChange={(e) => setTimeRange(e.target.value)}
+            className="input min-w-[140px] w-full sm:w-auto"
+          >
+            {timeRanges.map((range) => (
+              <option key={range.value} value={range.value}>
+                {range.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -81,7 +94,7 @@ const AdminDashboard = () => {
             </span>
           </div>
           <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            {formatCurrency(dashboard?.totalRevenue || 0)}
+            {formatCurrency(dashboard?.stats?.revenue?.total || 0)}
           </h3>
           <p className="text-gray-600">Total Revenue</p>
         </div>
@@ -92,11 +105,11 @@ const AdminDashboard = () => {
               <Users className="w-6 h-6 text-primary-600" />
             </div>
             <span className="text-sm text-primary-600 font-medium">
-              +{dashboard?.usersChange || 0}%
+              +{dashboard?.stats?.users?.change || 0}%
             </span>
           </div>
           <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            {formatNumber(dashboard?.totalUsers || 0)}
+            {formatNumber(dashboard?.stats?.users?.total || 0)}
           </h3>
           <p className="text-gray-600">Total Users</p>
         </div>
@@ -107,11 +120,11 @@ const AdminDashboard = () => {
               <Store className="w-6 h-6 text-warning-600" />
             </div>
             <span className="text-sm text-warning-600 font-medium">
-              +{dashboard?.vendorsChange || 0}%
+              +{dashboard?.stats?.vendors?.change || 0}%
             </span>
           </div>
           <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            {formatNumber(dashboard?.totalVendors || 0)}
+            {formatNumber(dashboard?.stats?.users?.vendors || 0)}
           </h3>
           <p className="text-gray-600">Total Vendors</p>
         </div>
@@ -122,11 +135,11 @@ const AdminDashboard = () => {
               <Package className="w-6 h-6 text-indigo-600" />
             </div>
             <span className="text-sm text-indigo-600 font-medium">
-              +{dashboard?.productsChange || 0}%
+              +{dashboard?.stats?.products?.change || 0}%
             </span>
           </div>
           <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            {formatNumber(dashboard?.totalProducts || 0)}
+            {formatNumber(dashboard?.stats?.products?.total || 0)}
           </h3>
           <p className="text-gray-600">Total Products</p>
         </div>
@@ -158,7 +171,7 @@ const AdminDashboard = () => {
                         #{order.orderNumber}
                       </p>
                       <p className="text-sm text-gray-600 truncate">
-                        {order.customer?.name || 'Guest'}
+                        {order.user?.name || 'Guest'}
                       </p>
                     </div>
                     
@@ -196,30 +209,20 @@ const AdminDashboard = () => {
           </div>
           
           <div className="p-6">
-            {dashboard?.pendingVendors?.length > 0 ? (
-              <div className="space-y-4">
-                {dashboard.pendingVendors.slice(0, 5).map((vendor) => (
-                  <div key={vendor._id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">
-                        {vendor.storeName}
-                      </p>
-                      <p className="text-sm text-gray-600 truncate">
-                        {vendor.email}
-                      </p>
-                    </div>
-                    
-                    <div className="text-right">
-                      <span className="px-2 py-1 bg-warning-100 text-warning-800 rounded-full text-xs font-medium">
-                        Pending
-                      </span>
-                    </div>
-                  </div>
-                ))}
+            {dashboard?.stats?.users?.vendorRequests > 0 ? (
+              <div className="text-center py-8">
+                <AlertCircle className="w-12 h-12 text-warning-600 mx-auto mb-4" />
+                <p className="text-gray-900 font-medium mb-2">
+                  {dashboard?.stats?.users?.vendorRequests} vendor requests pending
+                </p>
+                <p className="text-gray-600 text-sm">
+                  Review and approve vendor applications
+                </p>
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-gray-600">No pending vendors</p>
+                <UserCheck className="w-12 h-12 text-success-600 mx-auto mb-4" />
+                <p className="text-gray-600">No pending vendor requests</p>
               </div>
             )}
           </div>

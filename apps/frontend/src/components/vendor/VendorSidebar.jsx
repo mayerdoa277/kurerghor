@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { 
   LayoutDashboard, 
   Package, 
@@ -14,16 +14,24 @@ import {
   TrendingUp,
   Users
 } from 'lucide-react'
+import { useAuthStore } from '../../store/authStore'
 
 const VendorSidebar = () => {
   const [expandedMenus, setExpandedMenus] = useState({})
   const location = useLocation()
+  const navigate = useNavigate()
+  const { logout } = useAuthStore()
 
   const toggleMenu = (menuName) => {
     setExpandedMenus(prev => ({
       ...prev,
       [menuName]: !prev[menuName]
     }))
+  }
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/')
   }
 
   const menuItems = [
@@ -37,7 +45,7 @@ const VendorSidebar = () => {
       icon: Package,
       submenu: [
         {
-          title: 'My Products',
+          title: 'All Products',
           href: '/vendor/products'
         },
         {
@@ -56,24 +64,6 @@ const VendorSidebar = () => {
       icon: ShoppingBag
     },
     {
-      title: 'Analytics',
-      icon: TrendingUp,
-      submenu: [
-        {
-          title: 'Sales Overview',
-          href: '/vendor/analytics/sales'
-        },
-        {
-          title: 'Product Performance',
-          href: '/vendor/analytics/products'
-        },
-        {
-          title: 'Customer Insights',
-          href: '/vendor/analytics/customers'
-        }
-      ]
-    },
-    {
       title: 'Earnings',
       href: '/vendor/earnings',
       icon: DollarSign
@@ -84,14 +74,25 @@ const VendorSidebar = () => {
       icon: Star
     },
     {
+      title: 'Analytics',
+      href: '/vendor/analytics',
+      icon: TrendingUp
+    },
+    {
       title: 'Customers',
       href: '/vendor/customers',
       icon: Users
     },
     {
-      title: 'Store Settings',
+      title: 'Settings',
       href: '/vendor/settings',
       icon: Settings
+    },
+    {
+      title: 'Logout',
+      href: '#',
+      icon: LogOut,
+      action: handleLogout
     }
   ]
 
@@ -104,11 +105,11 @@ const VendorSidebar = () => {
   }
 
   return (
-    <div className="w-64 bg-gray-900 text-white h-full">
-      <div className="p-6">
+    <div className="w-full lg:w-64 bg-gray-900 text-white lg:h-full">
+      <div className="p-4 lg:p-6">
         <div className="flex items-center space-x-3">
-          <Store className="w-8 h-8 text-primary-400" />
-          <h2 className="text-2xl font-bold">Vendor Panel</h2>
+          <Store className="w-6 h-6 lg:w-8 lg:h-8 text-primary-400" />
+          <h2 className="text-xl lg:text-2xl font-bold">Vendor Panel</h2>
         </div>
       </div>
 
@@ -164,34 +165,37 @@ const VendorSidebar = () => {
                     )}
                   </div>
                 ) : (
-                  <Link
-                    to={item.href}
-                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                      isItemActive
-                        ? 'bg-gray-800 text-white'
-                        : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span>{item.title}</span>
-                  </Link>
+                  item.action ? (
+                    <button
+                      onClick={item.action}
+                      className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                        isItemActive
+                          ? 'bg-gray-800 text-white'
+                          : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                      }`}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span>{item.title}</span>
+                    </button>
+                  ) : (
+                    <Link
+                      to={item.href}
+                      className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                        isItemActive
+                          ? 'bg-gray-800 text-white'
+                          : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                      }`}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span>{item.title}</span>
+                    </Link>
+                  )
                 )}
               </li>
             )
           })}
         </ul>
       </nav>
-
-      {/* Logout */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
-        <Link
-          to="/logout"
-          className="flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors"
-        >
-          <LogOut className="w-5 h-5" />
-          <span>Logout</span>
-        </Link>
-      </div>
     </div>
   )
 }

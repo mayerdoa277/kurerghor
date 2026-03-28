@@ -3,6 +3,7 @@ import Category from '../models/Category.js';
 import { protect, authorize } from '../middlewares/auth.js';
 import { validate, createCategorySchema } from '../utils/validation.js';
 import { getCache, setCache, deleteCachePattern } from '../config/redis.js';
+import { handleCategoryImageUpload } from '../middlewares/categoryUpload.js';
 
 const router = express.Router();
 
@@ -146,18 +147,113 @@ router.get('/tree/all', async (req, res, next) => {
 // @desc    Create category
 // @route   POST /api/v1/categories
 // @access  Private (Admin)
-router.post('/', protect, authorize('admin'), validate(createCategorySchema), async (req, res, next) => {
+router.post('/', protect, authorize('admin'), handleCategoryImageUpload, async (req, res, next) => {
+  console.log('🔄 CATEGORY CREATION ROUTE CALLED');
   try {
-    const category = await Category.create(req.body);
+    // Debug logging
+    console.log('🔍 CATEGORY CREATION DEBUG:');
+    console.log('📋 Request headers:', Object.keys(req.headers));
+    console.log('📋 Content-Type:', req.headers['content-type']);
+    console.log('📋 Request body exists:', !!req.body);
+    console.log('📋 Request body type:', typeof req.body);
+    console.log('📋 Request body:', req.body);
+    console.log('📋 Request file:', req.file);
+    
+    // Check if body exists
+    if (!req.body) {
+      console.log('❌ Request body is completely missing');
+      return res.status(400).json({
+        success: false,
+        error: 'Request body is missing. This usually means the request was not sent as multipart/form-data.'
+      });
+    }
+    
+    console.log('📋 Body keys found:', Object.keys(req.body));
+    
+    // Extract and validate fields from FormData
+    const { name, slug, description, status, parentId } = req.body;
+    
+    console.log('📋 Extracted fields:');
+    console.log('  name:', name, 'type:', typeof name, 'length:', name?.length);
+    console.log('  slug:', slug, 'type:', typeof slug, 'length:', slug?.length);
+    console.log('  description:', description, 'type:', typeof description, 'length:', description?.length);
+    console.log('  status:', status, 'type:', typeof status);
+    console.log('  parentId:', parentId, 'type:', typeof parentId);
+    
+    // Validation with detailed error messages
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      console.log('❌ Name validation failed');
+      return res.status(400).json({
+        success: false,
+        error: 'Category name is required and must be a non-empty string'
+      });
+    }
+    
+    if (!slug || typeof slug !== 'string' || slug.trim().length === 0) {
+      console.log('❌ Slug validation failed');
+      return res.status(400).json({
+        success: false,
+        error: 'Category slug is required and must be a non-empty string'
+      });
+    }
+    
+    console.log('✅ Validation passed');
+    
+    // Prepare category data
+    const categoryData = {
+      name: name.trim(),
+      slug: slug.trim().toLowerCase(),
+      description: description ? description.trim() : '',
+      status: status || 'active',
+      parentId: parentId || null
+    };
+    
+    // Add image URL if uploaded
+    if (req.file) {
+      // For now, just store the file info. In a real app, you'd upload to cloud storage
+      categoryData.image = {
+        filename: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      };
+      console.log('📋 Added image data:', categoryData.image);
+    }
+
+    console.log('📋 Final category data for DB:', categoryData);
+
+    const category = await Category.create(categoryData);
     
     // Clear cache
     await deleteCachePattern('categories:*');
+    
+    console.log('✅ Category created successfully:', category._id);
     
     res.status(201).json({
       success: true,
       data: category
     });
   } catch (error) {
+    console.error('❌ Category creation error:', error);
+    
+    // Handle Mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors
+      });
+    }
+    
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      return res.status(400).json({
+        success: false,
+        error: `${field} already exists`
+      });
+    }
+    
     next(error);
   }
 });
@@ -165,7 +261,7 @@ router.post('/', protect, authorize('admin'), validate(createCategorySchema), as
 // @desc    Update category
 // @route   PUT /api/v1/categories/:id
 // @access  Private (Admin)
-router.put('/:id', protect, authorize('admin'), async (req, res, next) => {
+router.put('/:id', protect, authorize('admin'), handleCategoryImageUpload, async (req, res, next) => {
   try {
     const { id } = req.params;
     
@@ -178,7 +274,14 @@ router.put('/:id', protect, authorize('admin'), async (req, res, next) => {
       });
     }
 
-    category = await Category.findByIdAndUpdate(id, req.body, {
+    const updateData = { ...req.body };
+    
+    // Add image URL if uploaded
+    if (req.file && req.file.url) {
+      updateData.image = req.file.url;
+    }
+
+    category = await Category.findByIdAndUpdate(id, updateData, {
       new: true,
       runValidators: true
     });

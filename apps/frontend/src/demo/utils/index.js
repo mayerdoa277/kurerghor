@@ -38,7 +38,8 @@ export const getDemoModeStatus = () => {
 
 // Flag to control demo mode (can be toggled via localStorage)
 export const isDemoMode = () => {
-  return localStorage.getItem('demo-mode') === 'true'
+  // return localStorage.getItem('demo-mode') === 'true'
+  return false;
 }
 
 export const setDemoMode = (enabled) => {

@@ -10,7 +10,8 @@ import {
   Calendar,
   ArrowUp,
   ArrowDown,
-  MoreHorizontal
+  MoreHorizontal,
+  Home
 } from 'lucide-react'
 import { useQuery } from 'react-query'
 import { vendorAPI } from '../../services/api'
@@ -65,26 +66,38 @@ const VendorDashboard = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Vendor Dashboard</h1>
           <p className="text-gray-600">Overview of your store performance</p>
         </div>
         
-        {/* Time Range Selector */}
-        <div className="relative">
-          <select
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value)}
-            className="input appearance-none pr-10"
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* Home Button */}
+          <Link 
+            to="/"
+            className="inline-flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 whitespace-nowrap"
           >
-            {timeRanges.map((range) => (
-              <option key={range.value} value={range.value}>
-                {range.label}
-              </option>
-            ))}
-          </select>
-          <MoreHorizontal className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <Home className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden sm:inline">Go Home</span>
+            <span className="sm:hidden">Home</span>
+          </Link>
+          
+          {/* Time Range Selector */}
+          <div className="relative min-w-[140px] w-full sm:w-auto">
+            <select
+              value={timeRange}
+              onChange={(e) => setTimeRange(e.target.value)}
+              className="input appearance-none pr-10 w-full"
+            >
+              {timeRanges.map((range) => (
+                <option key={range.value} value={range.value}>
+                  {range.label}
+                </option>
+              ))}
+            </select>
+            <MoreHorizontal className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          </div>
         </div>
       </div>
 

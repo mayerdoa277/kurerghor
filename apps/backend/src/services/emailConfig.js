@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Load email-specific environment variables
-dotenv.config({ path: join(__dirname, '.env.brevo') });
+dotenv.config({ path: join(__dirname, '../../.env') });
 
 // Email configuration
 export const EMAIL_CONFIG = {

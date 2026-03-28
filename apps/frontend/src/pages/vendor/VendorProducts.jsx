@@ -122,7 +122,7 @@ const VendorProducts = () => {
         </div>
         
         <Link 
-          to="/vendor/products/new"
+          to="/vendor/products/add"
           className="btn-primary flex items-center space-x-2"
         >
           <Plus className="w-4 h-4" />
@@ -359,7 +359,7 @@ const VendorProducts = () => {
             }
           </p>
           <Link 
-            to="/vendor/products/new"
+            to="/vendor/products/add"
             className="btn-primary inline-flex items-center space-x-2"
           >
             <Plus className="w-4 h-4" />

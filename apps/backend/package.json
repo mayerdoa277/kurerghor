@@ -13,6 +13,8 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@imagekit/nodejs": "^7.3.0",
     "aws-sdk": "^2.1550.0",
     "axios": "^1.6.7",
     "bcryptjs": "^2.4.3",
@@ -23,6 +25,7 @@
     "express": "^4.18.2",
     "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^7.2.0",
+    "ffmpeg-static": "^5.3.0",
     "helmet": "^7.1.0",
     "joi": "^17.12.1",
     "jsonwebtoken": "^9.0.3",

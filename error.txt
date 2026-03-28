@@ -1,0 +1,17 @@
+Form data before submission: Object
+AdminCategoryNew.jsx:136 Appending name: test15
+AdminCategoryNew.jsx:136 Appending slug: test15
+AdminCategoryNew.jsx:136 Appending description: test15des
+AdminCategoryNew.jsx:136 Appending status: active
+AdminCategoryNew.jsx:130 Appending image file: File
+AdminCategoryNew.jsx:142 FormData contents:
+AdminCategoryNew.jsx:144 name: test15
+AdminCategoryNew.jsx:144 slug: test15
+AdminCategoryNew.jsx:144 description: test15des
+AdminCategoryNew.jsx:144 status: active
+AdminCategoryNew.jsx:144 image: File
+api.js:22 🚀 API Request: Object
+api.js:61 ✅ API Response: Object
+AdminCategoryNew.jsx:40 Category created successfully: Object
+api.js:22 🚀 API Request: Object
+api.js:61 ✅ API Response: Object

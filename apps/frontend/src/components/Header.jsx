@@ -167,9 +167,11 @@ const Header = () => {
                 )}
               </button>
 
-              {/* User Account - Responsive Size */}
+              {/* User Account - Desktop Only */}
               {isAuthenticated ? (
-                <UserDropdown user={user} onLogout={handleLogout} />
+                <div className="hidden lg:block">
+                  <UserDropdown user={user} onLogout={handleLogout} />
+                </div>
               ) : (
                 <div className="hidden lg:flex items-center space-x-1 sm:space-x-2">
                   <Link

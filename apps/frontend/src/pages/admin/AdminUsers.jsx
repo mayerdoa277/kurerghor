@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { 
   Search, 
@@ -19,22 +19,49 @@ import Pagination from '../../components/Pagination'
 const AdminUsers = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const inputRef = useRef(null)
 
-  const { data: usersData, isLoading } = useQuery(
-    ['adminUsers', currentPage, searchQuery, roleFilter, statusFilter],
+  // Handle search input change - immediate UI update
+  const handleSearchChange = useCallback((e) => {
+    const value = e.target.value
+    setSearchQuery(value) // Update input immediately
+  }, [])
+
+  // Debounce search query for API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+      setCurrentPage(1) // Reset to first page when searching
+    }, 300) // Proper debounce timing for stability
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // Force focus persistence
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [debouncedSearchQuery])
+
+  const { data: usersData, isLoading, error } = useQuery(
+    ['adminUsers', currentPage, debouncedSearchQuery, roleFilter, statusFilter],
     () => adminAPI.getUsers({
       page: currentPage,
-      search: searchQuery,
+      search: debouncedSearchQuery,
       role: roleFilter,
       status: statusFilter
     }),
-    { staleTime: 30 * 1000 }
+    { 
+      staleTime: 30 * 1000,
+      keepPreviousData: true, // VERY IMPORTANT - prevents UI flicker
+      refetchOnWindowFocus: false
+    }
   )
 
-  const users = usersData?.data?.users || []
-  const pagination = usersData?.data?.pagination
+  const users = usersData?.data?.data?.users || []
+  const pagination = usersData?.data?.data?.pagination
 
   const roleOptions = [
     { value: '', label: 'All Roles' },
@@ -70,6 +97,17 @@ const AdminUsers = () => {
 
   if (isLoading) return <LoadingSpinner />
 
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <h3 className="text-red-800 font-semibold mb-2">Error Loading Users</h3>
+          <p className="text-red-600">{error.message || 'Failed to load users'}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -81,12 +119,16 @@ const AdminUsers = () => {
       <div className="bg-white rounded-lg p-6 border border-gray-200 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="relative">
+            <Search className="search-icon" />
             <input
+              ref={inputRef}
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchChange}
               placeholder="Search users..."
               className="search-input w-full"
+              autoComplete="off"
+              spellCheck="false"
             />
           </div>
           
@@ -177,8 +219,8 @@ const AdminUsers = () => {
                       </td>
                       
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(user.status)}`}>
-                          {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(user.isActive ? 'active' : 'inactive')}`}>
+                          {user.isActive ? 'Active' : 'Inactive'}
                         </span>
                       </td>
                       
@@ -195,7 +237,7 @@ const AdminUsers = () => {
                             View
                           </Link>
                           
-                          {user.status === 'active' ? (
+                          {user.isActive ? (
                             <button className="text-error-600 hover:text-error-900">
                               <Ban className="w-4 h-4" />
                             </button>

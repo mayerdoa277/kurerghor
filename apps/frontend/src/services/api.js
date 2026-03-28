@@ -130,7 +130,12 @@ export const authAPI = {
   register: (userData) => api.post('/auth/register', userData),
   logout: (refreshToken) => api.post('/auth/logout', { refreshToken }),
   refreshToken: (refreshToken) => api.post('/auth/refresh', { refreshToken }),
-  getMe: () => api.get('/auth/me')
+  getMe: () => api.get('/auth/me'),
+  // Admin authentication
+  adminLogin: (credentials) => api.post('/auth/admin-login', credentials),
+  adminVerifyOTP: (data) => api.post('/auth/admin-verify-otp', data),
+  adminResendOTP: (data) => api.post('/auth/admin-resend-otp', data),
+  getAdminEmails: () => api.get('/auth/admin-emails')
 }
 
 export const userAPI = {
@@ -142,7 +147,10 @@ export const userAPI = {
   deleteAddress: (addressId) => api.delete(`/users/addresses/${addressId}`),
   getWishlist: () => api.get('/users/wishlist'),
   addToWishlist: (productId) => api.post('/users/wishlist', { productId }),
-  removeFromWishlist: (productId) => api.delete(`/users/wishlist/${productId}`)
+  removeFromWishlist: (productId) => api.delete(`/users/wishlist/${productId}`),
+  // Vendor request APIs
+  requestVendorAccess: (vendorData) => api.post('/users/request-vendor', vendorData),
+  getVendorRequestStatus: () => api.get('/users/vendor-request-status')
 }
 
 export const productAPI = {
@@ -187,6 +195,20 @@ export const vendorAPI = {
   requestVendorAccount: (requestData) => api.post('/vendors/request', requestData),
   getDashboard: () => api.get('/vendors/dashboard'),
   getProducts: (params) => api.get('/vendors/products', { params }),
+  getCategories: (params) => api.get('/vendors/categories', { params }),
+  createProduct: (productData) => {
+    // Handle FormData separately for file uploads
+    if (productData instanceof FormData) {
+      return api.post('/vendors/products', productData, {
+        headers: {
+          'Content-Type': undefined, // Let browser set it automatically for FormData
+        },
+      })
+    }
+    // For regular JSON data
+    return api.post('/vendors/products', productData)
+  },
+  deleteProduct: (productId) => api.delete(`/vendors/products/${productId}`),
   getOrders: (params) => api.get('/vendors/orders', { params }),
   getEarnings: (params) => api.get('/vendors/earnings', { params }),
   updateProfile: (profileData) => api.put('/vendors/profile', profileData)
@@ -195,15 +217,48 @@ export const vendorAPI = {
 export const adminAPI = {
   getDashboard: () => api.get('/admin/dashboard'),
   getUsers: (params) => api.get('/admin/users', { params }),
+  getUserById: (userId) => api.get(`/admin/users/${userId}`),
+  updateUser: (userId, userData) => api.put(`/admin/users/${userId}`, userData),
+  toggleUserStatus: (userId) => api.patch(`/admin/users/${userId}/toggle-status`),
   updateUserStatus: (userId, statusData) => api.put(`/admin/users/${userId}/status`, statusData),
   getProducts: (params) => api.get('/admin/products', { params }),
+  createProduct: (productData) => {
+    // Handle FormData separately for file uploads
+    if (productData instanceof FormData) {
+      return api.post('/admin/products', productData, {
+        headers: {
+          'Content-Type': undefined, // Let browser set it automatically for FormData
+        },
+      })
+    }
+    // For regular JSON data
+    return api.post('/admin/products', productData)
+  },
   updateProductStatus: (productId, statusData) => api.put(`/admin/products/${productId}/status`, statusData),
   getOrders: (params) => api.get('/admin/orders', { params }),
   getCategories: () => api.get('/admin/categories'),
-  createCategory: (categoryData) => api.post('/admin/categories', categoryData),
+  createCategory: (categoryData) => {
+    // Handle FormData separately for file uploads
+    if (categoryData instanceof FormData) {
+      return api.post('/admin/categories', categoryData, {
+        headers: {
+          'Content-Type': undefined, // Let browser set it automatically for FormData
+        },
+      })
+    }
+    // For regular JSON data
+    return api.post('/admin/categories', categoryData)
+  },
+  getVendors: (params) => api.get('/admin/vendors', { params }),
   getCoupons: (params) => api.get('/admin/coupons', { params }),
   createCoupon: (couponData) => api.post('/admin/coupons', couponData),
-  getAnalytics: (params) => api.get('/admin/analytics', { params })
+  getAnalytics: (params) => api.get('/admin/analytics', { params }),
+  // Vendor request management
+  getVendorRequests: (params) => api.get('/admin/vendor-requests', { params }),
+  getVendorRequestStats: () => api.get('/admin/vendor-requests/stats'),
+  getVendorRequest: (id) => api.get(`/admin/vendor-requests/${id}`),
+  approveVendorRequest: (id, data) => api.patch(`/admin/vendor-requests/${id}/approve`, data),
+  rejectVendorRequest: (id, data) => api.patch(`/admin/vendor-requests/${id}/reject`, data)
 }
 
 export const searchAPI = {

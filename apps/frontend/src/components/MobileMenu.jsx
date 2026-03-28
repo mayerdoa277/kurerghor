@@ -1,12 +1,22 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { X, Home, ShoppingBag, Package, User, Heart, ChevronRight } from 'lucide-react'
+import { X, Home, ShoppingBag, Package, User, Heart, Store, Settings, ChevronRight } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 
 const MobileMenu = ({ isOpen, onClose }) => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { isAuthenticated, user, logout } = useAuthStore()
+  const { isAuthenticated, user, logout, vendorRequestStatus, fetchVendorRequestStatus } = useAuthStore()
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      if (isAuthenticated && user?.role !== 'vendor') {
+        await fetchVendorRequestStatus()
+      }
+    }
+
+    fetchStatus()
+  }, [isAuthenticated, user, fetchVendorRequestStatus])
 
   const menuItems = [
     {
@@ -28,16 +38,60 @@ const MobileMenu = ({ isOpen, onClose }) => {
 
   const accountItems = [
     {
-      name: 'Profile',
+      name: 'My Profile',
       href: '/profile',
       icon: User
     },
     {
-      name: 'Orders',
+      name: 'My Orders',
       href: '/orders',
       icon: Package
+    },
+    {
+      name: 'Wishlist',
+      href: '/wishlist',
+      icon: Heart
     }
   ]
+
+  // Add vendor menu item dynamically based on status
+  const getVendorMenuItem = () => {
+    if (user?.role === 'vendor') {
+      return {
+        name: 'Vendor Panel',
+        href: '/vendor/dashboard',
+        icon: Store
+      }
+    }
+    
+    if (vendorRequestStatus?.hasRequest) {
+      if (vendorRequestStatus.request.status === 'pending') {
+        return {
+          name: 'Application Pending',
+          href: '/become-vendor',
+          icon: Store
+        }
+      } else if (vendorRequestStatus.request.status === 'rejected') {
+        return {
+          name: 'Become a Vendor',
+          href: '/become-vendor',
+          icon: Store
+        }
+      }
+    }
+    
+    return {
+      name: 'Become a Vendor',
+      href: '/become-vendor',
+      icon: Store
+    }
+  }
+
+  const allAccountItems = [...accountItems, getVendorMenuItem(), {
+    name: 'Settings',
+    href: '/settings',
+    icon: Settings
+  }]
 
   if (!isOpen) return null
 
@@ -65,6 +119,21 @@ const MobileMenu = ({ isOpen, onClose }) => {
 
           {/* Menu Content */}
           <div className="flex-1 overflow-y-auto">
+            {/* User Info Section - Only show when authenticated */}
+            {isAuthenticated && (
+              <div className="p-4 border-b border-gray-200 bg-gray-50">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                    <User className="w-5 h-5 text-primary-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">{user?.name || 'User'}</p>
+                    <p className="text-sm text-gray-600">{user?.email}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Main Menu */}
             <div className="p-4">
               <h3 className="text-sm font-medium text-gray-500 mb-3">Menu</h3>
@@ -100,7 +169,7 @@ const MobileMenu = ({ isOpen, onClose }) => {
               <div className="p-4 border-t border-gray-200">
                 <h3 className="text-sm font-medium text-gray-500 mb-3">Account</h3>
                 <nav className="space-y-1">
-                  {accountItems.map((item) => {
+                  {allAccountItems.map((item) => {
                     const Icon = item.icon
                     const isActive = location.pathname === item.href
                     
@@ -123,20 +192,6 @@ const MobileMenu = ({ isOpen, onClose }) => {
                       </Link>
                     )
                   })}
-                  
-                  {user?.role === 'vendor' && (
-                    <Link
-                      to="/vendor/dashboard"
-                      className="flex items-center justify-between px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                      onClick={onClose}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <ShoppingBag className="w-5 h-5" />
-                        <span>Vendor Dashboard</span>
-                      </div>
-                      <ChevronRight className="w-4 h-4" />
-                    </Link>
-                  )}
                 </nav>
               </div>
             )}
@@ -144,22 +199,16 @@ const MobileMenu = ({ isOpen, onClose }) => {
             {/* Auth Section */}
             <div className="p-4 border-t border-gray-200">
               {isAuthenticated ? (
-                <div className="space-y-3">
-                  <div className="px-3 py-2">
-                    <p className="font-medium text-gray-900">{user?.name}</p>
-                    <p className="text-sm text-gray-600">{user?.email}</p>
-                  </div>
-                  <button
-                    onClick={async () => {
-                      await logout()
-                      onClose()
-                      navigate('/')
-                    }}
-                    className="w-full px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-center"
-                  >
-                    Logout
-                  </button>
-                </div>
+                <button
+                  onClick={async () => {
+                    await logout()
+                    onClose()
+                    navigate('/')
+                  }}
+                  className="w-full px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-center"
+                >
+                  Logout
+                </button>
               ) : (
                 <div className="space-y-2">
                   <Link
