@@ -1,34 +1,46 @@
-import ImageKit from '@imagekit/nodejs';
+import ImageKit, { toFile } from '@imagekit/nodejs';
 import { UploadService } from './uploadService.js';
 
 /**
- * ImageKit implementation of the UploadService interface
+ * ImageKit implementation of UploadService interface
  */
 export class ImageKitService extends UploadService {
   constructor() {
     super();
-    
+
     // Hardcoded ImageKit configuration to bypass env variable issues
     const publicKey = 'public_yA8SidcLwvvuQ9QCRnj81kFrLMg=';
     const privateKey = 'private_CRNtVo2/Fa7atiHdeMnsMAEwlxo=';
     const urlEndpoint = 'https://ik.imagekit.io/ohgmcj4v2';
-    
+
     this.imagekit = new ImageKit({
       publicKey,
       privateKey,
       urlEndpoint
     });
-    
+
     console.log('✅ ImageKit initialized with hardcoded credentials');
-    console.log('🔍 Available methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(this.imagekit)));
+    console.log('🔍 ImageKit instance type:', typeof this.imagekit);
+    console.log('🔍 ImageKit prototype:', Object.getPrototypeOf(this.imagekit));
     console.log('🔍 Upload method type:', typeof this.imagekit.upload);
+    console.log('🔍 Available methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(this.imagekit)));
+    console.log('🔍 Own properties:', Object.getOwnPropertyNames(this.imagekit));
   }
 
   async uploadFile(buffer, filename, folder = '', options = {}) {
     try {
-      // For @imagekit/nodejs v7.3.0, use the correct parameter structure
+      // Debug buffer
+      console.log('🔍 Buffer info:', {
+        isBuffer: Buffer.isBuffer(buffer),
+        bufferType: typeof buffer,
+        bufferLength: buffer ? buffer.length : 'undefined',
+        filename: filename
+      });
+
+      // For @imagekit/nodejs v7.3.0, use the toFile helper to convert buffer
+      const fileObject = await toFile(buffer, filename);
       const uploadOptions = {
-        file: buffer, // File buffer from multer
+        file: fileObject, // Use toFile helper to convert buffer
         fileName: filename,
         folder: folder || 'categories',
         useUniqueFileName: false,
@@ -38,11 +50,11 @@ export class ImageKitService extends UploadService {
       console.log('🔍 Trying to upload with options:', {
         fileName: uploadOptions.fileName,
         folder: uploadOptions.folder,
-        fileSize: buffer.length
+        fileSize: buffer ? buffer.length : 'undefined'
       });
 
       // The correct method for v7.3.0
-      const response = await this.imagekit.upload(uploadOptions);
+      const response = await this.imagekit.files.upload(uploadOptions);
 
       console.log('✅ ImageKit upload successful:', response.url);
 
@@ -76,7 +88,7 @@ export class ImageKitService extends UploadService {
    */
   async deleteFile(fileId) {
     try {
-      await this.imagekit.deleteFile(fileId);
+      await this.imagekit.files.delete(fileId);
       return true;
     } catch (error) {
       console.error('ImageKit delete failed:', error);
@@ -91,7 +103,7 @@ export class ImageKitService extends UploadService {
    */
   async getFileMetadata(fileId) {
     try {
-      const metadata = await this.imagekit.getFileInfo(fileId);
+      const metadata = await this.imagekit.files.getFileDetails(fileId);
       return {
         fileId: metadata.fileId,
         fileName: metadata.name,
@@ -129,7 +141,7 @@ export class ImageKitService extends UploadService {
         signed: true,
         expireSeconds: expiresIn
       });
-      
+
       return url;
     } catch (error) {
       console.error('ImageKit signed URL generation failed:', error);
@@ -146,8 +158,8 @@ export class ImageKitService extends UploadService {
   async listFiles(folder = '', options = {}) {
     try {
       const { skip = 0, limit = 100, fileType = 'all' } = options;
-      
-      const response = await this.imagekit.listFiles({
+
+      const response = await this.imagekit.files.list({
         path: folder,
         skip,
         limit,
@@ -190,7 +202,7 @@ export class ImageKitService extends UploadService {
       if (!this.imagekit) {
         return false;
       }
-      
+
       // Test configuration by trying to list files (limit 0)
       // This will fail if credentials are invalid
       await this.imagekit.listFiles({ limit: 0 });

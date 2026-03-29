@@ -27,7 +27,7 @@ api.interceptors.request.use(
       headers: config.headers,
       origin: window.location.origin
     })
-    
+
     // Add auth token if available
     const token = localStorage.getItem('auth-storage')
     if (token) {
@@ -249,8 +249,10 @@ export const adminAPI = {
     // For regular JSON data
     return api.post('/admin/categories', categoryData)
   },
-  getVendors: (params) => api.get('/admin/vendors', { params }),
-  getCoupons: (params) => api.get('/admin/coupons', { params }),
+  updateCategory: (id, categoryData) => api.put(`/admin/categories/${id}`, categoryData),
+  deleteCategory: (id) => api.delete(`/admin/categories/${id}`),
+  bulkDeleteCategories: (categoryIds) => api.delete('/admin/categories/bulk', { data: { categoryIds } }),
+  getCategories: (params) => api.get('/admin/categories', { params }),
   createCoupon: (couponData) => api.post('/admin/coupons', couponData),
   getAnalytics: (params) => api.get('/admin/analytics', { params }),
   // Vendor request management

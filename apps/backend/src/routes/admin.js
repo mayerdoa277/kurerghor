@@ -54,7 +54,7 @@ router.get('/dashboard', async (req, res, next) => {
 
     const totalVendors = await User.countDocuments({ role: 'vendor' });
 
-    
+
 
     // Product stats
 
@@ -64,7 +64,7 @@ router.get('/dashboard', async (req, res, next) => {
 
     const draftProducts = await Product.countDocuments({ status: 'draft' });
 
-    
+
 
     // Order stats
 
@@ -76,7 +76,7 @@ router.get('/dashboard', async (req, res, next) => {
 
     const completedOrders = await Order.countDocuments({ status: 'delivered' });
 
-    
+
 
     // Revenue stats
 
@@ -84,7 +84,7 @@ router.get('/dashboard', async (req, res, next) => {
 
     const totalRevenue = paidOrders.reduce((sum, order) => sum + order.total, 0);
 
-    
+
 
     // Recent orders
 
@@ -96,7 +96,7 @@ router.get('/dashboard', async (req, res, next) => {
 
       .limit(10);
 
-    
+
 
     // Top products
 
@@ -110,7 +110,7 @@ router.get('/dashboard', async (req, res, next) => {
 
       .select('name price soldCount vendor');
 
-    
+
 
     // Revenue by month (last 6 months)
 
@@ -118,7 +118,7 @@ router.get('/dashboard', async (req, res, next) => {
 
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-    
+
 
     const monthlyRevenue = await Order.aggregate([
 
@@ -162,7 +162,7 @@ router.get('/dashboard', async (req, res, next) => {
 
     ]);
 
-    
+
 
     res.json({
 
@@ -250,13 +250,13 @@ router.get('/users', async (req, res, next) => {
 
     const skip = (page - 1) * limit;
 
-    
+
 
     const { role, status, search } = req.query;
 
     const query = {};
 
-    
+
 
     if (role) query.role = role;
 
@@ -276,7 +276,7 @@ router.get('/users', async (req, res, next) => {
 
     }
 
-    
+
 
     const users = await User.find(query)
 
@@ -286,11 +286,11 @@ router.get('/users', async (req, res, next) => {
 
       .limit(limit);
 
-    
+
 
     const total = await User.countDocuments(query);
 
-    
+
 
     res.json({
 
@@ -338,11 +338,11 @@ router.get('/users/:id', async (req, res, next) => {
 
     const { id } = req.params;
 
-    
+
 
     const user = await User.findById(id);
 
-    
+
 
     if (!user) {
 
@@ -356,7 +356,7 @@ router.get('/users/:id', async (req, res, next) => {
 
     }
 
-    
+
 
     res.json({
 
@@ -390,7 +390,7 @@ router.put('/users/:id', async (req, res, next) => {
 
     const { name, email, role, isActive } = req.body;
 
-    
+
 
     const user = await User.findByIdAndUpdate(
 
@@ -402,7 +402,7 @@ router.put('/users/:id', async (req, res, next) => {
 
     );
 
-    
+
 
     if (!user) {
 
@@ -416,7 +416,7 @@ router.put('/users/:id', async (req, res, next) => {
 
     }
 
-    
+
 
     res.json({
 
@@ -448,11 +448,11 @@ router.patch('/users/:id/toggle-status', async (req, res, next) => {
 
     const { id } = req.params;
 
-    
+
 
     const user = await User.findById(id);
 
-    
+
 
     if (!user) {
 
@@ -466,13 +466,13 @@ router.patch('/users/:id/toggle-status', async (req, res, next) => {
 
     }
 
-    
+
 
     user.isActive = !user.isActive;
 
     await user.save();
 
-    
+
 
     res.json({
 
@@ -506,7 +506,7 @@ router.put('/users/:userId/status', async (req, res, next) => {
 
     const { isActive } = req.body;
 
-    
+
 
     const user = await User.findByIdAndUpdate(
 
@@ -518,7 +518,7 @@ router.put('/users/:userId/status', async (req, res, next) => {
 
     );
 
-    
+
 
     if (!user) {
 
@@ -532,7 +532,7 @@ router.put('/users/:userId/status', async (req, res, next) => {
 
     }
 
-    
+
 
     res.json({
 
@@ -568,13 +568,13 @@ router.get('/products', async (req, res, next) => {
 
     const skip = (page - 1) * limit;
 
-    
+
 
     const { status, vendor, category, search } = req.query;
 
     const query = {};
 
-    
+
 
     if (status) query.status = status;
 
@@ -588,7 +588,7 @@ router.get('/products', async (req, res, next) => {
 
     }
 
-    
+
 
     const products = await Product.find(query)
 
@@ -602,11 +602,11 @@ router.get('/products', async (req, res, next) => {
 
       .limit(limit);
 
-    
+
 
     const total = await Product.countDocuments(query);
 
-    
+
 
     res.json({
 
@@ -656,7 +656,7 @@ router.put('/products/:productId/status', async (req, res, next) => {
 
     const { status, featured } = req.body;
 
-    
+
 
     const updateData = {};
 
@@ -664,7 +664,7 @@ router.put('/products/:productId/status', async (req, res, next) => {
 
     if (featured !== undefined) updateData.featured = featured;
 
-    
+
 
     const product = await Product.findByIdAndUpdate(
 
@@ -676,7 +676,7 @@ router.put('/products/:productId/status', async (req, res, next) => {
 
     );
 
-    
+
 
     if (!product) {
 
@@ -690,13 +690,13 @@ router.put('/products/:productId/status', async (req, res, next) => {
 
     }
 
-    
+
 
     // Clear cache
 
     await deleteCachePattern('products:*');
 
-    
+
 
     res.json({
 
@@ -732,13 +732,13 @@ router.get('/orders', async (req, res, next) => {
 
     const skip = (page - 1) * limit;
 
-    
+
 
     const { status, paymentStatus, search } = req.query;
 
     const query = {};
 
-    
+
 
     if (status) query.status = status;
 
@@ -756,7 +756,7 @@ router.get('/orders', async (req, res, next) => {
 
     }
 
-    
+
 
     const orders = await Order.find(query)
 
@@ -770,11 +770,11 @@ router.get('/orders', async (req, res, next) => {
 
       .limit(limit);
 
-    
+
 
     const total = await Order.countDocuments(query);
 
-    
+
 
     res.json({
 
@@ -818,7 +818,7 @@ router.get('/orders', async (req, res, next) => {
 
 router.get('/categories', async (req, res, next) => {
   try {
-    const categories = await Category.find()
+    const categories = await Category.find({ isActive: true })
       .populate('parent', 'name')
       .sort({ level: 1, sortOrder: 1, name: 1 });
 
@@ -844,7 +844,7 @@ router.get('/categories', async (req, res, next) => {
 router.post('/categories', handleCategoryImageUpload, async (req, res, next) => {
   try {
     const { name, slug, description, status, parentId } = req.body;
-    
+
     // Validation
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return res.status(400).json({
@@ -852,14 +852,14 @@ router.post('/categories', handleCategoryImageUpload, async (req, res, next) => 
         error: 'Category name is required and must be a non-empty string'
       });
     }
-    
+
     if (!slug || typeof slug !== 'string' || slug.trim().length === 0) {
       return res.status(400).json({
         success: false,
         error: 'Category slug is required and must be a non-empty string'
       });
     }
-    
+
     // Prepare category data
     const categoryData = {
       name: name.trim(),
@@ -868,12 +868,12 @@ router.post('/categories', handleCategoryImageUpload, async (req, res, next) => 
       status: status || 'active',
       parentId: parentId || null
     };
-    
+
     // Upload image to ImageKit if provided
     if (req.file) {
       try {
         const imageKitService = new ImageKitService();
-        
+
         // Try to upload directly without configuration check
         const uploadResult = await imageKitService.uploadFile(
           req.file.buffer,
@@ -884,7 +884,7 @@ router.post('/categories', handleCategoryImageUpload, async (req, res, next) => 
             tags: ['category', name.trim().toLowerCase()]
           }
         );
-        
+
         categoryData.image = uploadResult.url;
         console.log('✅ Image uploaded to ImageKit:', uploadResult.url);
       } catch (uploadError) {
@@ -895,7 +895,7 @@ router.post('/categories', handleCategoryImageUpload, async (req, res, next) => 
     }
 
     const category = await Category.create(categoryData);
-    
+
     // Clear cache
     await deleteCachePattern('categories:*');
 
@@ -906,7 +906,7 @@ router.post('/categories', handleCategoryImageUpload, async (req, res, next) => 
 
   } catch (error) {
     console.error('❌ Admin category creation error:', error);
-    
+
     // Handle Mongoose validation errors
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => err.message);
@@ -916,7 +916,7 @@ router.post('/categories', handleCategoryImageUpload, async (req, res, next) => 
         details: errors
       });
     }
-    
+
     // Handle duplicate key errors
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
@@ -925,7 +925,142 @@ router.post('/categories', handleCategoryImageUpload, async (req, res, next) => 
         error: `${field} already exists`
       });
     }
-    
+
+    next(error);
+  }
+});
+
+// @desc    Bulk delete categories
+// @route   DELETE /api/v1/admin/categories/bulk
+// @access  Private (Admin)
+router.delete('/categories/bulk', async (req, res, next) => {
+  try {
+    const { categoryIds } = req.body;
+
+    if (!categoryIds || !Array.isArray(categoryIds) || categoryIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Category IDs array is required'
+      });
+    }
+
+    // Check if any category has children
+    const categoriesWithChildren = await Category.find({
+      parent: { $in: categoryIds },
+      isActive: true
+    });
+
+    if (categoriesWithChildren.length > 0) {
+      const parentIds = categoriesWithChildren.map(cat => cat._id.toString());
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot delete categories that have subcategories',
+        data: {
+          categoriesWithChildren: parentIds
+        }
+      });
+    }
+
+    // Soft delete all categories
+    const result = await Category.updateMany(
+      { _id: { $in: categoryIds } },
+      { isActive: false }
+    );
+
+    // Clear cache
+    await deleteCachePattern('categories:*');
+
+    res.json({
+      success: true,
+      message: `${result.modifiedCount} categories deleted successfully`,
+      data: {
+        deletedCount: result.modifiedCount,
+        requestedCount: categoryIds.length
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Update category
+// @route   PUT /api/v1/admin/categories/:id
+// @access  Private (Admin)
+router.put('/categories/:id', handleCategoryImageUpload, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    let category = await Category.findById(id);
+
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        error: 'Category not found'
+      });
+    }
+
+    const updateData = { ...req.body };
+
+    // Upload image to ImageKit if provided
+    if (req.file) {
+      try {
+        const imageKitService = new ImageKitService();
+
+        // Try to upload directly without configuration check
+        const uploadResult = await imageKitService.uploadFile(
+          req.file.buffer,
+          req.file.originalname,
+          'categories',
+          {
+            fileType: 'image',
+            tags: ['category', req.body.name?.trim().toLowerCase()]
+          }
+        );
+
+        updateData.image = uploadResult.url;
+        console.log('✅ Image uploaded to ImageKit:', uploadResult.url);
+      } catch (uploadError) {
+        console.error('❌ ImageKit upload failed:', uploadError.message);
+        // Continue without image - don't fail the whole category update
+        // Keep existing image if upload fails
+      }
+    }
+
+    category = await Category.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true
+    });
+
+    // Clear cache
+    await deleteCachePattern('categories:*');
+
+    res.json({
+      success: true,
+      data: category
+    });
+
+  } catch (error) {
+    console.error('❌ Admin category update error:', error);
+
+    // Handle Mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors
+      });
+    }
+
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      return res.status(400).json({
+        success: false,
+        error: `${field} already exists`
+      });
+    }
+
     next(error);
   }
 });
@@ -948,13 +1083,13 @@ router.get('/coupons', async (req, res, next) => {
 
     const skip = (page - 1) * limit;
 
-    
+
 
     const { status, search } = req.query;
 
     const query = {};
 
-    
+
 
     if (status === 'active') query.isActive = true;
 
@@ -972,7 +1107,7 @@ router.get('/coupons', async (req, res, next) => {
 
     }
 
-    
+
 
     const coupons = await Coupon.find(query)
 
@@ -984,11 +1119,11 @@ router.get('/coupons', async (req, res, next) => {
 
       .limit(limit);
 
-    
+
 
     const total = await Coupon.countDocuments(query);
 
-    
+
 
     res.json({
 
@@ -1042,11 +1177,11 @@ router.post('/coupons', async (req, res, next) => {
 
     };
 
-    
+
 
     const coupon = await Coupon.create(couponData);
 
-    
+
 
     res.status(201).json({
 
@@ -1078,7 +1213,7 @@ router.put('/coupons/:couponId', async (req, res, next) => {
 
     const { couponId } = req.params;
 
-    
+
 
     const coupon = await Coupon.findByIdAndUpdate(
 
@@ -1090,7 +1225,7 @@ router.put('/coupons/:couponId', async (req, res, next) => {
 
     );
 
-    
+
 
     if (!coupon) {
 
@@ -1104,7 +1239,7 @@ router.put('/coupons/:couponId', async (req, res, next) => {
 
     }
 
-    
+
 
     res.json({
 
@@ -1136,11 +1271,11 @@ router.delete('/coupons/:couponId', async (req, res, next) => {
 
     const { couponId } = req.params;
 
-    
+
 
     const coupon = await Coupon.findById(couponId);
 
-    
+
 
     if (!coupon) {
 
@@ -1154,11 +1289,11 @@ router.delete('/coupons/:couponId', async (req, res, next) => {
 
     }
 
-    
+
 
     await coupon.remove();
 
-    
+
 
     res.json({
 
@@ -1194,7 +1329,7 @@ router.get('/analytics', async (req, res, next) => {
 
     daysAgo.setDate(daysAgo.getDate() - parseInt(period));
 
-    
+
 
     // Sales analytics
 
@@ -1238,7 +1373,7 @@ router.get('/analytics', async (req, res, next) => {
 
     ]);
 
-    
+
 
     // Top categories
 
@@ -1322,7 +1457,7 @@ router.get('/analytics', async (req, res, next) => {
 
     ]);
 
-    
+
 
     // User registration trends
 
@@ -1362,7 +1497,7 @@ router.get('/analytics', async (req, res, next) => {
 
     ]);
 
-    
+
 
     res.json({
 
@@ -1418,7 +1553,7 @@ router.get('/vendor-requests', async (req, res, next) => {
 
     const query = {};
 
-    
+
 
     // Only add status filter if it's not empty and not 'all'
 

@@ -14,7 +14,7 @@ router.get('/', async (req, res, next) => {
   try {
     const cacheKey = 'categories:all';
     let cachedCategories = await getCache(cacheKey);
-    
+
     if (cachedCategories) {
       return res.json({
         success: true,
@@ -44,10 +44,10 @@ router.get('/', async (req, res, next) => {
 router.get('/:slug', async (req, res, next) => {
   try {
     const { slug } = req.params;
-    
+
     const cacheKey = `category:${slug}`;
     let cachedCategory = await getCache(cacheKey);
-    
+
     if (cachedCategory) {
       return res.json({
         success: true,
@@ -67,7 +67,7 @@ router.get('/:slug', async (req, res, next) => {
 
     // Get children categories
     const children = await category.getChildren();
-    
+
     const result = {
       ...category.toJSON(),
       children
@@ -92,7 +92,7 @@ router.get('/tree/all', async (req, res, next) => {
   try {
     const cacheKey = 'categories:tree';
     let cachedTree = await getCache(cacheKey);
-    
+
     if (cachedTree) {
       return res.json({
         success: true,
@@ -101,32 +101,32 @@ router.get('/tree/all', async (req, res, next) => {
     }
 
     // Get root categories (level 0)
-    const rootCategories = await Category.find({ 
-      parent: null, 
-      isActive: true 
+    const rootCategories = await Category.find({
+      parent: null,
+      isActive: true
     })
       .sort({ sortOrder: 1, name: 1 });
 
     // Build tree recursively
     const buildTree = async (categories) => {
       const tree = [];
-      
+
       for (const category of categories) {
-        const children = await Category.find({ 
-          parent: category._id, 
-          isActive: true 
+        const children = await Category.find({
+          parent: category._id,
+          isActive: true
         })
           .sort({ sortOrder: 1, name: 1 });
-        
+
         const categoryData = category.toJSON();
-        
+
         if (children.length > 0) {
           categoryData.children = await buildTree(children);
         }
-        
+
         tree.push(categoryData);
       }
-      
+
       return tree;
     };
 
@@ -158,7 +158,7 @@ router.post('/', protect, authorize('admin'), handleCategoryImageUpload, async (
     console.log('📋 Request body type:', typeof req.body);
     console.log('📋 Request body:', req.body);
     console.log('📋 Request file:', req.file);
-    
+
     // Check if body exists
     if (!req.body) {
       console.log('❌ Request body is completely missing');
@@ -167,19 +167,19 @@ router.post('/', protect, authorize('admin'), handleCategoryImageUpload, async (
         error: 'Request body is missing. This usually means the request was not sent as multipart/form-data.'
       });
     }
-    
+
     console.log('📋 Body keys found:', Object.keys(req.body));
-    
+
     // Extract and validate fields from FormData
     const { name, slug, description, status, parentId } = req.body;
-    
+
     console.log('📋 Extracted fields:');
     console.log('  name:', name, 'type:', typeof name, 'length:', name?.length);
     console.log('  slug:', slug, 'type:', typeof slug, 'length:', slug?.length);
     console.log('  description:', description, 'type:', typeof description, 'length:', description?.length);
     console.log('  status:', status, 'type:', typeof status);
     console.log('  parentId:', parentId, 'type:', typeof parentId);
-    
+
     // Validation with detailed error messages
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       console.log('❌ Name validation failed');
@@ -188,7 +188,7 @@ router.post('/', protect, authorize('admin'), handleCategoryImageUpload, async (
         error: 'Category name is required and must be a non-empty string'
       });
     }
-    
+
     if (!slug || typeof slug !== 'string' || slug.trim().length === 0) {
       console.log('❌ Slug validation failed');
       return res.status(400).json({
@@ -196,9 +196,9 @@ router.post('/', protect, authorize('admin'), handleCategoryImageUpload, async (
         error: 'Category slug is required and must be a non-empty string'
       });
     }
-    
+
     console.log('✅ Validation passed');
-    
+
     // Prepare category data
     const categoryData = {
       name: name.trim(),
@@ -207,7 +207,7 @@ router.post('/', protect, authorize('admin'), handleCategoryImageUpload, async (
       status: status || 'active',
       parentId: parentId || null
     };
-    
+
     // Add image URL if uploaded
     if (req.file) {
       // For now, just store the file info. In a real app, you'd upload to cloud storage
@@ -222,19 +222,19 @@ router.post('/', protect, authorize('admin'), handleCategoryImageUpload, async (
     console.log('📋 Final category data for DB:', categoryData);
 
     const category = await Category.create(categoryData);
-    
+
     // Clear cache
     await deleteCachePattern('categories:*');
-    
+
     console.log('✅ Category created successfully:', category._id);
-    
+
     res.status(201).json({
       success: true,
       data: category
     });
   } catch (error) {
     console.error('❌ Category creation error:', error);
-    
+
     // Handle Mongoose validation errors
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => err.message);
@@ -244,7 +244,7 @@ router.post('/', protect, authorize('admin'), handleCategoryImageUpload, async (
         details: errors
       });
     }
-    
+
     // Handle duplicate key errors
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
@@ -253,7 +253,7 @@ router.post('/', protect, authorize('admin'), handleCategoryImageUpload, async (
         error: `${field} already exists`
       });
     }
-    
+
     next(error);
   }
 });
@@ -264,9 +264,9 @@ router.post('/', protect, authorize('admin'), handleCategoryImageUpload, async (
 router.put('/:id', protect, authorize('admin'), handleCategoryImageUpload, async (req, res, next) => {
   try {
     const { id } = req.params;
-    
+
     let category = await Category.findById(id);
-    
+
     if (!category) {
       return res.status(404).json({
         success: false,
@@ -275,7 +275,7 @@ router.put('/:id', protect, authorize('admin'), handleCategoryImageUpload, async
     }
 
     const updateData = { ...req.body };
-    
+
     // Add image URL if uploaded
     if (req.file && req.file.url) {
       updateData.image = req.file.url;
@@ -304,9 +304,9 @@ router.put('/:id', protect, authorize('admin'), handleCategoryImageUpload, async
 router.delete('/:id', protect, authorize('admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
-    
+
     const category = await Category.findById(id);
-    
+
     if (!category) {
       return res.status(404).json({
         success: false,
@@ -333,6 +333,59 @@ router.delete('/:id', protect, authorize('admin'), async (req, res, next) => {
     res.json({
       success: true,
       message: 'Category deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Bulk delete categories
+// @route   DELETE /api/v1/categories/bulk
+// @access  Private (Admin)
+router.delete('/bulk', protect, authorize('admin'), async (req, res, next) => {
+  try {
+    const { categoryIds } = req.body;
+
+    if (!categoryIds || !Array.isArray(categoryIds) || categoryIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Category IDs array is required'
+      });
+    }
+
+    // Check if any category has children
+    const categoriesWithChildren = await Category.find({
+      parent: { $in: categoryIds },
+      isActive: true
+    });
+
+    if (categoriesWithChildren.length > 0) {
+      const parentIds = categoriesWithChildren.map(cat => cat._id.toString());
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot delete categories that have subcategories',
+        data: {
+          categoriesWithChildren: parentIds
+        }
+      });
+    }
+
+    // Soft delete all categories
+    const result = await Category.updateMany(
+      { _id: { $in: categoryIds } },
+      { isActive: false }
+    );
+
+    // Clear cache
+    await deleteCachePattern('categories:*');
+
+    res.json({
+      success: true,
+      message: `${result.modifiedCount} categories deleted successfully`,
+      data: {
+        deletedCount: result.modifiedCount,
+        requestedCount: categoryIds.length
+      }
     });
   } catch (error) {
     next(error);

@@ -129,7 +129,13 @@ const limiter = rateLimit({
 
 app.use("/api", limiter);
 
-// API Routes (moved before body parsers to support multipart/form-data)
+// Body parser middleware (moved before routes to parse JSON request bodies)
+
+app.use(express.json({ limit: "10mb" }));
+
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// API Routes
 
 app.use("/api/v1/auth", authRoutes);
 
@@ -160,12 +166,6 @@ app.use("/api/v1/reviews", reviewRoutes);
 app.use("/api/v1/blog", blogRoutes);
 
 app.use("/api/v1/upload", uploadRoutes);
-
-// Body parser middleware (moved after routes to avoid interfering with multipart/form-data)
-
-app.use(express.json({ limit: "10mb" }));
-
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Health check
 

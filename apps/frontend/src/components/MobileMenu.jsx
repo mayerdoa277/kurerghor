@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { X, Home, ShoppingBag, Package, User, Heart, Store, Settings, ChevronRight } from 'lucide-react'
+import { X, Home, ShoppingBag, Package, User, Heart, Store, Settings, ChevronRight, Shield } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 
 const MobileMenu = ({ isOpen, onClose }) => {
@@ -64,6 +64,15 @@ const MobileMenu = ({ isOpen, onClose }) => {
       }
     }
     
+    // Show admin panel for admin users
+    if (user?.role === 'admin') {
+      return {
+        name: 'Admin Panel',
+        href: '/admin',
+        icon: Shield
+      }
+    }
+    
     if (vendorRequestStatus?.hasRequest) {
       if (vendorRequestStatus.request.status === 'pending') {
         return {
@@ -87,11 +96,18 @@ const MobileMenu = ({ isOpen, onClose }) => {
     }
   }
 
-  const allAccountItems = [...accountItems, getVendorMenuItem(), {
-    name: 'Settings',
-    href: '/settings',
-    icon: Settings
-  }]
+  const vendorMenuItem = getVendorMenuItem()
+  const allAccountItems = vendorMenuItem 
+    ? [...accountItems, vendorMenuItem, {
+        name: 'Settings',
+        href: '/settings',
+        icon: Settings
+      }]
+    : [...accountItems, {
+        name: 'Settings',
+        href: '/settings',
+        icon: Settings
+      }]
 
   if (!isOpen) return null
 

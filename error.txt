@@ -1,17 +1,127 @@
-Form data before submission: Object
-AdminCategoryNew.jsx:136 Appending name: test15
-AdminCategoryNew.jsx:136 Appending slug: test15
-AdminCategoryNew.jsx:136 Appending description: test15des
+Form data before submission: {name: '3', slug: '3', description: '3des', parentId: '', status: 'active', …}
+AdminCategoryNew.jsx:136 Appending name: 3
+AdminCategoryNew.jsx:136 Appending slug: 3
+AdminCategoryNew.jsx:136 Appending description: 3des
 AdminCategoryNew.jsx:136 Appending status: active
-AdminCategoryNew.jsx:130 Appending image file: File
+AdminCategoryNew.jsx:130 Appending image file: File {name: 'Snapchat-261333625-removebg-preview (1).png', lastModified: 1774768576591, lastModifiedDate: Sun Mar 29 2026 13:16:16 GMT+0600 (Bangladesh Standard Time), webkitRelativePath: '', size: 856293, …}
 AdminCategoryNew.jsx:142 FormData contents:
-AdminCategoryNew.jsx:144 name: test15
-AdminCategoryNew.jsx:144 slug: test15
-AdminCategoryNew.jsx:144 description: test15des
+AdminCategoryNew.jsx:144 name: 3
+AdminCategoryNew.jsx:144 slug: 3
+AdminCategoryNew.jsx:144 description: 3des
 AdminCategoryNew.jsx:144 status: active
-AdminCategoryNew.jsx:144 image: File
-api.js:22 🚀 API Request: Object
-api.js:61 ✅ API Response: Object
-AdminCategoryNew.jsx:40 Category created successfully: Object
-api.js:22 🚀 API Request: Object
-api.js:61 ✅ API Response: Object
+AdminCategoryNew.jsx:144 image: File {name: 'Snapchat-261333625-removebg-preview (1).png', lastModified: 1774768576591, lastModifiedDate: Sun Mar 29 2026 13:16:16 GMT+0600 (Bangladesh Standard Time), webkitRelativePath: '', size: 856293, …}
+api.js:22 🚀 API Request: {method: 'POST', url: '/admin/categories', baseURL: 'http://localhost:5000/api/v1', fullURL: 'http://localhost:5000/api/v1/admin/categories', headers: AxiosHeaders, …}
+api.js:69 ❌ API Error: {message: 'timeout of 10000ms exceeded', status: undefined, url: '/admin/categories', corsError: false, networkError: true}
+(anonymous) @ api.js:69
+Promise.then
+_request @ Axios.js:180
+request @ Axios.js:41
+httpMethod @ Axios.js:243
+wrap @ bind.js:12
+createCategory @ api.js:243
+fn @ mutation.js:132
+run2 @ retryer.js:95
+Retryer2 @ retryer.js:156
+executeMutation @ mutation.js:126
+(anonymous) @ mutation.js:86
+Promise.then
+execute @ mutation.js:85
+mutate @ mutationObserver.js:83
+(anonymous) @ useMutation.js:41
+handleSubmit @ AdminCategoryNew.jsx:147
+callCallback2 @ react-dom.development.js:4164
+invokeGuardedCallbackDev @ react-dom.development.js:4213
+invokeGuardedCallback @ react-dom.development.js:4277
+invokeGuardedCallbackAndCatchFirstError @ react-dom.development.js:4291
+executeDispatch @ react-dom.development.js:9041
+processDispatchQueueItemsInOrder @ react-dom.development.js:9073
+processDispatchQueue @ react-dom.development.js:9086
+dispatchEventsForPlugins @ react-dom.development.js:9097
+(anonymous) @ react-dom.development.js:9288
+batchedUpdates$1 @ react-dom.development.js:26179
+batchedUpdates @ react-dom.development.js:3991
+dispatchEventForPluginEventSystem @ react-dom.development.js:9287
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ react-dom.development.js:6465
+dispatchEvent @ react-dom.development.js:6457
+dispatchDiscreteEvent @ react-dom.development.js:6430
+api.js:116 Network error: AxiosError: timeout of 10000ms exceeded
+    at XMLHttpRequest.handleTimeout (xhr.js:139:11)
+(anonymous) @ api.js:116
+Promise.then
+_request @ Axios.js:180
+request @ Axios.js:41
+httpMethod @ Axios.js:243
+wrap @ bind.js:12
+createCategory @ api.js:243
+fn @ mutation.js:132
+run2 @ retryer.js:95
+Retryer2 @ retryer.js:156
+executeMutation @ mutation.js:126
+(anonymous) @ mutation.js:86
+Promise.then
+execute @ mutation.js:85
+mutate @ mutationObserver.js:83
+(anonymous) @ useMutation.js:41
+handleSubmit @ AdminCategoryNew.jsx:147
+callCallback2 @ react-dom.development.js:4164
+invokeGuardedCallbackDev @ react-dom.development.js:4213
+invokeGuardedCallback @ react-dom.development.js:4277
+invokeGuardedCallbackAndCatchFirstError @ react-dom.development.js:4291
+executeDispatch @ react-dom.development.js:9041
+processDispatchQueueItemsInOrder @ react-dom.development.js:9073
+processDispatchQueue @ react-dom.development.js:9086
+dispatchEventsForPlugins @ react-dom.development.js:9097
+(anonymous) @ react-dom.development.js:9288
+batchedUpdates$1 @ react-dom.development.js:26179
+batchedUpdates @ react-dom.development.js:3991
+dispatchEventForPluginEventSystem @ react-dom.development.js:9287
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ react-dom.development.js:6465
+dispatchEvent @ react-dom.development.js:6457
+dispatchDiscreteEvent @ react-dom.development.js:6430
+AdminCategoryNew.jsx:147 {message: 'Network error. Please check your connection.', isNetworkError: true}
+(anonymous) @ mutation.js:106
+Promise.catch
+execute @ mutation.js:102
+mutate @ mutationObserver.js:83
+(anonymous) @ useMutation.js:41
+handleSubmit @ AdminCategoryNew.jsx:147
+callCallback2 @ react-dom.development.js:4164
+invokeGuardedCallbackDev @ react-dom.development.js:4213
+invokeGuardedCallback @ react-dom.development.js:4277
+invokeGuardedCallbackAndCatchFirstError @ react-dom.development.js:4291
+executeDispatch @ react-dom.development.js:9041
+processDispatchQueueItemsInOrder @ react-dom.development.js:9073
+processDispatchQueue @ react-dom.development.js:9086
+dispatchEventsForPlugins @ react-dom.development.js:9097
+(anonymous) @ react-dom.development.js:9288
+batchedUpdates$1 @ react-dom.development.js:26179
+batchedUpdates @ react-dom.development.js:3991
+dispatchEventForPluginEventSystem @ react-dom.development.js:9287
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ react-dom.development.js:6465
+dispatchEvent @ react-dom.development.js:6457
+dispatchDiscreteEvent @ react-dom.development.js:6430
+AdminCategoryNew.jsx:45 Category creation error: {message: 'Network error. Please check your connection.', isNetworkError: true}
+onError @ AdminCategoryNew.jsx:45
+(anonymous) @ mutation.js:108
+Promise.then
+(anonymous) @ mutation.js:107
+Promise.catch
+execute @ mutation.js:102
+mutate @ mutationObserver.js:83
+(anonymous) @ useMutation.js:41
+handleSubmit @ AdminCategoryNew.jsx:147
+callCallback2 @ react-dom.development.js:4164
+invokeGuardedCallbackDev @ react-dom.development.js:4213
+invokeGuardedCallback @ react-dom.development.js:4277
+invokeGuardedCallbackAndCatchFirstError @ react-dom.development.js:4291
+executeDispatch @ react-dom.development.js:9041
+processDispatchQueueItemsInOrder @ react-dom.development.js:9073
+processDispatchQueue @ react-dom.development.js:9086
+dispatchEventsForPlugins @ react-dom.development.js:9097
+(anonymous) @ react-dom.development.js:9288
+batchedUpdates$1 @ react-dom.development.js:26179
+batchedUpdates @ react-dom.development.js:3991
+dispatchEventForPluginEventSystem @ react-dom.development.js:9287
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ react-dom.development.js:6465
+dispatchEvent @ react-dom.development.js:6457
+dispatchDiscreteEvent @ react-dom.development.js:6430

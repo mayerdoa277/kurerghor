@@ -51,6 +51,7 @@ import AdminOrders from './pages/admin/AdminOrders'
 import AdminVendors from './pages/admin/AdminVendors'
 import AdminCategories from './pages/admin/AdminCategories'
 import AdminCategoryNew from './pages/admin/AdminCategoryNew'
+import AdminCategoryEdit from './pages/admin/AdminCategoryEdit'
 import AdminCoupons from './pages/admin/AdminCoupons'
 import AdminAnalytics from './pages/admin/AdminAnalytics'
 import AdminSettings from './pages/admin/AdminSettings'
@@ -128,6 +129,7 @@ function App() {
           <Route path="orders" element={<AdminOrders />} />
           <Route path="categories" element={<AdminCategories />} />
           <Route path="categories/new" element={<AdminCategoryNew />} />
+          <Route path="categories/:id/edit" element={<AdminCategoryEdit />} />
           <Route path="coupons" element={<AdminCoupons />} />
           <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="settings" element={<AdminSettings />} />

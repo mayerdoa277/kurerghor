@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { User, ChevronDown, Settings, LogOut, Package, Heart, ShoppingBag, Store } from 'lucide-react'
+import { User, ChevronDown, Settings, LogOut, Package, Heart, ShoppingBag, Store, Shield } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 
 const UserDropdown = () => {
@@ -107,6 +107,15 @@ const UserDropdown = () => {
               >
                 <Store className="w-4 h-4" />
                 <span>Vendor Panel</span>
+              </Link>
+            ) : user?.role === 'admin' ? (
+              <Link
+                to="/admin"
+                className="flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                <Shield className="w-4 h-4" />
+                <span>Admin Panel</span>
               </Link>
             ) : vendorRequestStatus?.hasRequest ? (
               vendorRequestStatus.request.status === 'pending' ? (
