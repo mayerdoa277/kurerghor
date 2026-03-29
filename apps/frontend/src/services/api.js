@@ -217,10 +217,12 @@ export const vendorAPI = {
 export const adminAPI = {
   getDashboard: () => api.get('/admin/dashboard'),
   getUsers: (params) => api.get('/admin/users', { params }),
-  getUserById: (userId) => api.get(`/admin/users/${userId}`),
-  updateUser: (userId, userData) => api.put(`/admin/users/${userId}`, userData),
+  getUser: (id) => api.get(`/admin/users/${id}`),
+  updateUser: (id, userData) => api.put(`/admin/users/${id}`, userData),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`),
   toggleUserStatus: (userId) => api.patch(`/admin/users/${userId}/toggle-status`),
   updateUserStatus: (userId, statusData) => api.put(`/admin/users/${userId}/status`, statusData),
+
   getProducts: (params) => api.get('/admin/products', { params }),
   createProduct: (productData) => {
     // Handle FormData separately for file uploads
@@ -234,9 +236,15 @@ export const adminAPI = {
     // For regular JSON data
     return api.post('/admin/products', productData)
   },
+  updateProduct: (id, productData) => api.put(`/admin/products/${id}`, productData),
+  deleteProduct: (id) => api.delete(`/admin/products/${id}`),
   updateProductStatus: (productId, statusData) => api.put(`/admin/products/${productId}/status`, statusData),
+
   getOrders: (params) => api.get('/admin/orders', { params }),
-  getCategories: () => api.get('/admin/categories'),
+  getOrder: (id) => api.get(`/admin/orders/${id}`),
+  updateOrderStatus: (id, statusData) => api.put(`/admin/orders/${id}/status`, statusData),
+
+  getCategories: (params) => api.get('/admin/categories', { params }),
   createCategory: (categoryData) => {
     // Handle FormData separately for file uploads
     if (categoryData instanceof FormData) {
@@ -252,10 +260,18 @@ export const adminAPI = {
   updateCategory: (id, categoryData) => api.put(`/admin/categories/${id}`, categoryData),
   deleteCategory: (id) => api.delete(`/admin/categories/${id}`),
   bulkDeleteCategories: (categoryIds) => api.delete('/admin/categories/bulk', { data: { categoryIds } }),
-  getCategories: (params) => api.get('/admin/categories', { params }),
+
+  // Vendor management
+  getVendors: (params) => api.get('/admin/vendors', { params }),
+  getVendor: (id) => api.get(`/admin/vendors/${id}`),
+  updateVendor: (id, vendorData) => api.put(`/admin/vendors/${id}`, vendorData),
+  deleteVendor: (id) => api.delete(`/admin/vendors/${id}`),
+  toggleVendorStatus: (vendorId) => api.patch(`/admin/vendors/${vendorId}/toggle-status`),
+
+  // Coupon management
   createCoupon: (couponData) => api.post('/admin/coupons', couponData),
   getAnalytics: (params) => api.get('/admin/analytics', { params }),
-  // Vendor request management
+
   getVendorRequests: (params) => api.get('/admin/vendor-requests', { params }),
   getVendorRequestStats: () => api.get('/admin/vendor-requests/stats'),
   getVendorRequest: (id) => api.get(`/admin/vendor-requests/${id}`),

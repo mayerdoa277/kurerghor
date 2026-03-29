@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { 
   ArrowLeft,
@@ -7,14 +7,20 @@ import {
   X,
   Package,
   Plus,
-  Trash2
+  Trash2,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react'
-import { useMutation, useQuery } from 'react-query'
+import { useMutation, useQuery, useQueryClient } from 'react-query'
 import { adminAPI } from '../../services/api'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import toast from 'react-hot-toast'
+import { useSocket } from '../../contexts/SocketContext'
 
 const AdminProductAdd = () => {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const socket = useSocket()
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -48,26 +54,86 @@ const AdminProductAdd = () => {
   const { data: categoriesData } = useQuery(
     'adminCategoriesForProduct',
     () => adminAPI.getCategories({ page: 1, limit: 100 }),
-    { staleTime: 30 * 1000 }
+    { staleTime: 5 * 1000 } // Reduced to 5 seconds for more responsive updates
   )
 
   const { data: vendorsData } = useQuery(
     'adminVendorsForProduct',
     () => adminAPI.getVendors({ page: 1, limit: 100 }),
-    { staleTime: 30 * 1000 }
+    { staleTime: 5 * 1000 } // Reduced to 5 seconds for more responsive updates
   )
 
-  const categories = categoriesData?.data?.categories || []
-  const vendors = vendorsData?.data?.vendors || []
+  const categories = Array.isArray(categoriesData?.data) ? categoriesData.data : 
+                  Array.isArray(categoriesData?.data?.data) ? categoriesData.data.data :
+                  Array.isArray(categoriesData?.data?.categories) ? categoriesData.data.categories : []
+const vendors = Array.isArray(vendorsData?.data?.data?.vendors) ? vendorsData.data.data.vendors : 
+                  Array.isArray(vendorsData?.data?.vendors) ? vendorsData.data.vendors : 
+                  Array.isArray(vendorsData?.data) ? vendorsData.data :
+                  Array.isArray(vendorsData?.vendors) ? vendorsData.vendors :
+                  Array.isArray(vendorsData?.success?.data?.vendors) ? vendorsData.success.data.vendors : []
+
+// Refresh categories and vendors when window gets focus (user navigates back to this page)
+useEffect(() => {
+  const handleFocus = () => {
+    console.log('🔄 Window focused, refreshing categories and vendors...')
+    queryClient.invalidateQueries('adminCategoriesForProduct')
+    queryClient.invalidateQueries('adminVendorsForProduct')
+    queryClient.refetchQueries('adminCategoriesForProduct')
+    queryClient.refetchQueries('adminVendorsForProduct')
+  }
+
+  window.addEventListener('focus', handleFocus)
+  return () => window.removeEventListener('focus', handleFocus)
+}, [queryClient])
+
+// Listen for real-time vendor updates via WebSocket
+useEffect(() => {
+  if (socket?.connected) {
+    const handleVendorUpdate = (data) => {
+      console.log('🔔 Real-time vendor update received:', data)
+      
+      // Show toast notification
+      if (data.type === 'vendor_approved') {
+        toast.success(data.message || 'New vendor approved!', {
+          icon: <CheckCircle2 className="w-5 h-5 text-green-500" />,
+          duration: 4000
+        })
+      } else if (data.type === 'vendor_rejected') {
+        toast.error(data.message || 'Vendor request rejected', {
+          icon: <AlertCircle className="w-5 h-5 text-red-500" />,
+          duration: 4000
+        })
+      }
+      
+      // Refresh vendors list to get the latest data
+      queryClient.invalidateQueries('adminVendorsForProduct')
+      queryClient.refetchQueries('adminVendorsForProduct')
+    }
+
+    socket.on('vendor:update', handleVendorUpdate)
+    
+    return () => {
+      socket.off('vendor:update', handleVendorUpdate)
+    }
+  }
+}, [socket, queryClient])
 
   const createProductMutation = useMutation(
     adminAPI.createProduct,
     {
       onSuccess: () => {
+        toast.success('Product created successfully!', {
+          icon: <CheckCircle2 className="w-5 h-5 text-green-500" />,
+          duration: 3000
+        })
         navigate('/admin/products')
       },
       onError: (error) => {
         setErrors(error.response?.data?.errors || {})
+        toast.error(error.response?.data?.message || 'Failed to create product', {
+          icon: <AlertCircle className="w-5 h-5 text-red-500" />,
+          duration: 4000
+        })
       }
     }
   )
@@ -173,21 +239,55 @@ const AdminProductAdd = () => {
     
     const formDataToSubmit = new FormData()
     
+    // Debug: Log form data before submission
+    console.log('🚀 Submitting product data:', {
+      name: formData.name,
+      description: formData.description,
+      price: formData.price,
+      sku: formData.sku,
+      categoryId: formData.categoryId,
+      vendorId: formData.vendorId,
+      quantity: formData.quantity,
+      imagesCount: formData.images.length,
+      inventory: {
+        quantity: formData.quantity || 0,
+        trackQuantity: formData.trackQuantity,
+        allowBackorder: formData.allowBackorder
+      }
+    })
+    
     // Add all basic fields
     Object.keys(formData).forEach(key => {
       if (key === 'dimensions') {
         formDataToSubmit.append('dimensions', JSON.stringify(formData.dimensions))
       } else if (key === 'tags') {
         formDataToSubmit.append('tags', JSON.stringify(formData.tags))
+      } else if (key === 'categoryId') {
+        formDataToSubmit.append('category', formData[key])
+      } else if (key === 'vendorId') {
+        formDataToSubmit.append('vendor', formData[key])
       } else if (key !== 'images') {
         formDataToSubmit.append(key, formData[key])
       }
     })
 
+    // Add inventory object as required by backend
+    formDataToSubmit.append('inventory', JSON.stringify({
+      quantity: formData.quantity || 0,
+      trackQuantity: formData.trackQuantity,
+      allowBackorder: formData.allowBackorder
+    }))
+
     // Add images
     formData.images.forEach((image, index) => {
       formDataToSubmit.append(`images`, image)
     })
+
+    // Debug: Log FormData contents
+    console.log('📤 FormData being sent:')
+    for (let [key, value] of formDataToSubmit.entries()) {
+      console.log(`  ${key}:`, value)
+    }
 
     createProductMutation.mutate(formDataToSubmit)
   }
@@ -458,7 +558,7 @@ const AdminProductAdd = () => {
                   <option value="">Select a vendor</option>
                   {vendors.map((vendor) => (
                     <option key={vendor._id} value={vendor._id}>
-                      {vendor.storeName || vendor.owner?.name}
+                      {vendor.storeName || vendor.name || vendor.email}
                     </option>
                   ))}
                 </select>

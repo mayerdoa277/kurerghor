@@ -27,7 +27,7 @@ const AdminUserDetail = () => {
 
   const { data: userData, isLoading, error } = useQuery(
     ['adminUser', id],
-    () => adminAPI.getUserById(id),
+    () => adminAPI.getUser(id),
     { enabled: !!id }
   )
 

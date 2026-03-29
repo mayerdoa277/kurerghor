@@ -18,7 +18,15 @@ import { deleteCachePattern } from '../config/redis.js';
 
 import { handleCategoryImageUpload } from '../middlewares/categoryUpload.js';
 
+import { handleMultipleImageUpload } from '../middlewares/uploadMiddleware.js';
+
+import { validate, createProductSchema } from '../utils/validation.js';
+
+import { getDefaultUploadService } from '../services/uploadService.js';
+
 import { ImageKitService } from '../services/imagekitService.js';
+
+import { emitVendorUpdate } from '../sockets/socketHandler.js';
 
 
 
@@ -1875,18 +1883,19 @@ router.patch('/vendor-requests/:id/approve', async (req, res, next) => {
 
 
 
+    // Emit real-time vendor update to all admin clients
+    emitVendorUpdate({
+      type: 'vendor_approved',
+      vendor: user,
+      message: `New vendor "${user.name}" has been approved and added to the vendors list`
+    });
+
     res.json({
-
       success: true,
-
       message: 'Vendor request approved successfully',
-
       data: {
-
         request: vendorRequest
-
       }
-
     });
 
   } catch (error) {
@@ -2007,20 +2016,19 @@ router.patch('/vendor-requests/:id/reject', async (req, res, next) => {
 
     }
 
-
+    // Emit real-time vendor update to all admin clients
+    emitVendorUpdate({
+      type: 'vendor_rejected',
+      vendor: user,
+      message: `Vendor request for "${user.name}" has been rejected`
+    });
 
     res.json({
-
       success: true,
-
       message: 'Vendor request rejected successfully',
-
       data: {
-
         request: vendorRequest
-
       }
-
     });
 
   } catch (error) {
@@ -2031,6 +2039,237 @@ router.patch('/vendor-requests/:id/reject', async (req, res, next) => {
 
 });
 
+// @desc    Get all vendors (admin view)
+// @route   GET /api/v1/admin/vendors
+// @access  Private (Admin)
+router.get('/vendors', async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    // Build query
+    const query = { role: 'vendor' };
+
+    console.log('🔍 Admin vendors query:', query);
+    console.log('🔍 Admin vendors query params:', req.query);
+
+    if (req.query.search) {
+      query.$or = [
+        { name: { $regex: req.query.search, $options: 'i' } },
+        { email: { $regex: req.query.search, $options: 'i' } }
+      ];
+    }
+
+    if (req.query.status) {
+      query.vendorRequest = {
+        approved: req.query.status === 'approved'
+      };
+    }
+
+    console.log('🔍 Final vendor query:', query);
+
+    const vendors = await User.find(query)
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    console.log('🔍 Vendors found:', vendors.length);
+    vendors.forEach(v => {
+      console.log('  -', v._id, v.name, v.email, v.role, v.vendorRequest?.approved);
+    });
+
+    const total = await User.countDocuments(query);
+    console.log('🔍 Total vendors count:', total);
+
+    res.json({
+      success: true,
+      data: {
+        vendors,
+        pagination: {
+          page,
+          limit,
+          pages: Math.ceil(total / limit),
+          total
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Admin vendors listing error:', error);
+    next(error);
+  }
+});
+
+// @desc    Get single vendor
+// @route   GET /api/v1/admin/vendors/:id
+// @access  Private (Admin)
+router.get('/vendors/:id', async (req, res, next) => {
+  try {
+    const vendor = await User.findOne({ _id: req.params.id, role: 'vendor' })
+      .select('-password');
+
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        error: 'Vendor not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: vendor
+    });
+
+  } catch (error) {
+    console.error('❌ Admin vendor details error:', error);
+    next(error);
+  }
+});
+
+// @desc    Update vendor
+// @route   PUT /api/v1/admin/vendors/:id
+// @access  Private (Admin)
+router.put('/vendors/:id', async (req, res, next) => {
+  try {
+    const vendor = await User.findOne({ _id: req.params.id, role: 'vendor' });
+
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        error: 'Vendor not found'
+      });
+    }
+
+    const allowedUpdates = ['name', 'email', 'vendorRequest.shopName', 'vendorRequest.shopDescription', 'vendorRequest.shopAddress', 'vendorRequest.shopPhone'];
+    const updates = {};
+
+    allowedUpdates.forEach(field => {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    });
+
+    const updatedVendor = await User.findByIdAndUpdate(
+      req.params.id,
+      updates,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    res.json({
+      success: true,
+      data: updatedVendor
+    });
+
+  } catch (error) {
+    console.error('❌ Admin vendor update error:', error);
+    next(error);
+  }
+});
+
+// @desc    Delete vendor
+// @route   DELETE /api/v1/admin/vendors/:id
+// @access  Private (Admin)
+router.delete('/vendors/:id', async (req, res, next) => {
+  try {
+    const vendor = await User.findOne({ _id: req.params.id, role: 'vendor' });
+
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        error: 'Vendor not found'
+      });
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+
+    res.json({
+      success: true,
+      message: 'Vendor deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ Admin vendor delete error:', error);
+    next(error);
+  }
+});
+
+// @desc    Toggle vendor status
+// @route   PATCH /api/v1/admin/vendors/:id/toggle-status
+// @access  Private (Admin)
+router.patch('/vendors/:id/toggle-status', async (req, res, next) => {
+  try {
+    const vendor = await User.findOne({ _id: req.params.id, role: 'vendor' });
+
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        error: 'Vendor not found'
+      });
+    }
+
+    vendor.isActive = !vendor.isActive;
+    await vendor.save();
+
+    res.json({
+      success: true,
+      data: vendor,
+      message: `Vendor ${vendor.isActive ? 'activated' : 'deactivated'} successfully`
+    });
+
+  } catch (error) {
+    console.error('❌ Admin vendor status toggle error:', error);
+    next(error);
+  }
+});
+
+// @desc    Create product
+// @route   POST /api/v1/admin/products
+// @access  Private (Admin)
+router.post('/products', protect, authorize('admin'), handleMultipleImageUpload, validate(createProductSchema), async (req, res, next) => {
+  try {
+    const productData = {
+      ...req.body,
+      vendor: req.body.vendor // Admin can specify vendor
+    };
+
+    // Handle image uploads
+    if (req.files && req.files.length > 0) {
+      const uploadService = await getDefaultUploadService();
+      const uploadedImages = [];
+
+      // Upload each image
+      for (const file of req.files) {
+        const uploadResult = await uploadService.uploadFile(
+          file.buffer,
+          file.originalname,
+          'products'
+        );
+
+        uploadedImages.push({
+          url: uploadResult.url,
+          alt: req.body.imageAlt || productData.name,
+          isMain: uploadedImages.length === 0 // First image is main
+        });
+      }
+
+      productData.images = uploadedImages;
+    }
+
+    const product = await Product.create(productData);
+
+    // Clear product cache
+    await deleteCachePattern('products:*');
+
+    res.status(201).json({
+      success: true,
+      data: product
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 
 export default router;

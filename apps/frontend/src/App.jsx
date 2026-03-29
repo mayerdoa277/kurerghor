@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useAuthStore } from './store/authStore'
 import { useCartStore } from './store/cartStore'
+import { SocketProvider } from './contexts/SocketContext'
 import Layout from './layouts/Layout'
 import PublicLayout from './layouts/PublicLayout'
 import DemoModeToggle from './demo/components/DemoModeToggle.jsx'
@@ -69,8 +70,9 @@ function App() {
   }, [initializeAuth, initializeCart, isAuthenticated])
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Routes>
+    <SocketProvider>
+      <div className="min-h-screen bg-gray-50">
+        <Routes>
         {/* Public routes */}
         <Route path="/" element={<PublicLayout />}>
           <Route index element={<HomePage />} />
@@ -142,6 +144,7 @@ function App() {
       {/* Demo Mode Toggle - Always visible */}
       <DemoModeToggle />
     </div>
+    </SocketProvider>
   )
 }
 

@@ -96,6 +96,8 @@ const AdminVendors = () => {
       onSuccess: () => {
         queryClient.invalidateQueries('adminVendorRequests')
         queryClient.invalidateQueries('adminVendorStats') // Refresh stats
+        queryClient.invalidateQueries('adminVendorsForProduct') // Refresh vendors in Product Add
+        queryClient.refetchQueries('adminVendorsForProduct') // Force immediate refresh
         setShowReviewModal(false)
         setSelectedRequest(null)
         setReviewData({ rejectionReason: '' })
@@ -111,6 +113,8 @@ const AdminVendors = () => {
       onSuccess: () => {
         queryClient.invalidateQueries('adminVendorRequests')
         queryClient.invalidateQueries('adminVendorStats') // Refresh stats
+        queryClient.invalidateQueries('adminVendorsForProduct') // Refresh vendors in Product Add
+        queryClient.refetchQueries('adminVendorsForProduct') // Force immediate refresh
         setShowReviewModal(false)
         setSelectedRequest(null)
         setReviewData({ rejectionReason: '' })

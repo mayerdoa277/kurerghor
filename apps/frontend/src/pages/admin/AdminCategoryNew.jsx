@@ -10,13 +10,14 @@ import {
   AlertCircle,
   CheckCircle2
 } from 'lucide-react'
-import { useMutation, useQuery } from 'react-query'
+import { useMutation, useQuery, useQueryClient } from 'react-query'
 import { adminAPI } from '../../services/api'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import toast from 'react-hot-toast'
 
 const AdminCategoryNew = () => {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -42,6 +43,12 @@ const AdminCategoryNew = () => {
     {
       onSuccess: (data) => {
         console.log('Category created successfully:', data)
+        // Invalidate categories cache to refresh the list immediately
+        queryClient.invalidateQueries('adminCategories')
+        queryClient.invalidateQueries('adminCategoriesForProduct')
+        // Also refetch immediately to ensure fresh data
+        queryClient.refetchQueries('adminCategories')
+        queryClient.refetchQueries('adminCategoriesForProduct')
         toast.success('Category created successfully!', {
           icon: <CheckCircle2 className="w-5 h-5 text-green-500" />,
           style: {

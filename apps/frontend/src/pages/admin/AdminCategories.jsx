@@ -77,7 +77,9 @@ const AdminCategories = () => {
       try {
         await adminAPI.bulkDeleteCategories(selectedCategories)
         setSelectedCategories([])
-        refetch()
+        // Invalidate cache to refresh the list
+        queryClient.invalidateQueries('adminCategories')
+        queryClient.invalidateQueries('adminCategoriesForProduct')
         toast.success(`${selectedCategories.length} categories deleted successfully!`, {
           icon: <CheckCircle2 className="w-5 h-5 text-green-500" />,
           style: {
@@ -101,13 +103,24 @@ const AdminCategories = () => {
   const handleRefresh = async () => {
     setIsRefreshing(true)
     try {
-      await refetch()
-      toast.success('Categories refreshed successfully!', {
+      // Invalidate cache to refresh the list
+      queryClient.invalidateQueries('adminCategories')
+      queryClient.invalidateQueries('adminCategoriesForProduct')
+      toast.success('Categories refreshed!', {
         icon: <CheckCircle2 className="w-5 h-5 text-green-500" />,
-        duration: 2000
+        style: {
+          background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+          color: 'white',
+          borderRadius: '12px',
+          fontWeight: '500',
+          padding: '12px 20px'
+        }
       })
     } catch (error) {
-      toast.error('Failed to refresh categories')
+      console.error('Refresh failed:', error)
+      toast.error('Failed to refresh categories', {
+        icon: <AlertCircle className="w-5 h-5 text-red-500" />
+      })
     } finally {
       setIsRefreshing(false)
     }
