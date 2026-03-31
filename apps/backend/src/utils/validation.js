@@ -3,14 +3,45 @@ import Joi from 'joi';
 // Validation middleware
 export const validate = (schema) => {
   return (req, res, next) => {
-    const { error } = schema.validate(req.body);
+    let data = req.body;
+    
+    // Handle FormData - parse JSON strings only for specific fields
+    if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
+      console.log('🔍 Processing FormData with keys:', Object.keys(req.body));
+      data = {};
+      Object.keys(req.body).forEach(key => {
+        // Only try to parse as JSON for fields that should be objects/arrays
+        const jsonFields = ['dimensions', 'tags', 'weight', 'inventory', 'seo'];
+        if (jsonFields.includes(key)) {
+          try {
+            data[key] = JSON.parse(req.body[key]);
+            console.log(`✅ Parsed ${key}:`, data[key]);
+          } catch {
+            data[key] = req.body[key];
+            console.log(`📝 Kept ${key} as string:`, data[key]);
+          }
+        } else {
+          // Keep all other fields as strings
+          data[key] = req.body[key];
+          console.log(`📝 Kept ${key} as string:`, data[key]);
+        }
+      });
+    }
+    
+    console.log('🔍 Validating data:', data);
+    const { error } = schema.validate(data);
     if (error) {
+      console.log('❌ Validation error:', error.details[0].message);
       const message = error.details[0].message;
       return res.status(400).json({
         success: false,
         error: message
       });
     }
+    
+    console.log('✅ Validation passed');
+    // Update req.body with parsed data for downstream middleware
+    req.body = data;
     next();
   };
 };
@@ -52,15 +83,17 @@ export const changePasswordSchema = Joi.object({
 // Product validation schemas
 export const createProductSchema = Joi.object({
   name: Joi.string().required().min(1).max(100),
-  description: Joi.string().required().min(1).max(2000),
+  slug: Joi.string().optional().min(1).max(100),
+  description: Joi.string().optional().min(1).max(2000),
   shortDescription: Joi.string().optional().max(200),
   category: Joi.string().required().pattern(/^[0-9a-fA-F]{24}$/),
   subcategories: Joi.array().items(Joi.string().pattern(/^[0-9a-fA-F]{24}$/)).optional(),
   brand: Joi.string().optional(),
-  sku: Joi.string().required(),
+  sku: Joi.string().optional(),
   price: Joi.number().required().min(0),
   compareAtPrice: Joi.number().optional().min(0),
   costPrice: Joi.number().optional().min(0),
+  barcode: Joi.string().optional().allow(''),
   images: Joi.array().items(Joi.object({
     url: Joi.string().uri().required(),
     alt: Joi.string().optional(),
@@ -96,13 +129,14 @@ export const createProductSchema = Joi.object({
   }).optional(),
   tags: Joi.array().items(Joi.string()).optional(),
   seo: Joi.object({
-    title: Joi.string().optional(),
-    description: Joi.string().optional(),
+    title: Joi.string().optional().allow(''),
+    description: Joi.string().optional().allow(''),
     keywords: Joi.array().items(Joi.string()).optional()
   }).optional(),
   status: Joi.string().valid('draft', 'active', 'archived').optional(),
   visibility: Joi.string().valid('public', 'private', 'hidden').optional(),
   featured: Joi.boolean().optional(),
+  vendor: Joi.string().optional().allow('').pattern(/^[0-9a-fA-F]{24}$/),
   shipping: Joi.object({
     freeShipping: Joi.boolean().optional(),
     shippingCost: Joi.number().optional().min(0),

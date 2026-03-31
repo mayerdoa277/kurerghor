@@ -15,7 +15,17 @@ const errorHandler = (err, req, res, next) => {
 
   // Mongoose duplicate key
   if (err.code === 11000) {
-    const message = 'Duplicate field value entered';
+    const field = Object.keys(err.keyPattern)[0];
+    let message = 'Duplicate field value entered';
+    
+    if (field === 'slug') {
+      message = 'Product with this URL slug already exists. Please use a different product name or slug.';
+    } else if (field === 'sku') {
+      message = 'Product with this SKU already exists. Please use a different SKU.';
+    } else {
+      message = `A product with this ${field} already exists.`;
+    }
+    
     error = { message, statusCode: 400 };
   }
 

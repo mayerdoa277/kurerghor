@@ -32,6 +32,16 @@
     @apply bg-gray-400;
   }
 
+  /* Hide scrollbar on mobile for horizontal scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Selection color */
   ::selection {
     @apply bg-primary-100 text-primary-900;

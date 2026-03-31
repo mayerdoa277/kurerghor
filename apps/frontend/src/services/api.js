@@ -3,7 +3,7 @@ import axios from 'axios'
 // Create axios instance
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1',
-  timeout: 10000,
+  timeout: 60000, // Extended to 60s for large file uploads
   headers: {
     'Content-Type': 'application/json'
   },
@@ -231,6 +231,15 @@ export const adminAPI = {
         headers: {
           'Content-Type': undefined, // Let browser set it automatically for FormData
         },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          // Emit upload progress event
+          window.dispatchEvent(new CustomEvent('productUploadProgress', {
+            detail: { progress: percentCompleted }
+          }));
+        }
       })
     }
     // For regular JSON data

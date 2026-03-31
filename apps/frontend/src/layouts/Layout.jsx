@@ -87,22 +87,16 @@ const Layout = ({ requiredRole }) => {
             </div>
           </div>
 
-          {/* Desktop Layout */}
-          <div className="hidden lg:flex">
-            <div className="w-64 min-h-screen sticky top-0 h-screen overflow-y-auto">
+          {/* Unified Responsive Layout */}
+          <div className="flex">
+            {/* Desktop Sidebar - hidden on mobile */}
+            <div className="hidden lg:block w-64 min-h-screen sticky top-0 h-screen overflow-y-auto">
               {renderSidebar()}
             </div>
+            
+            {/* Main Content - responsive padding */}
             <main className="flex-1 min-h-screen bg-gray-50">
-              <div className="p-6">
-                <Outlet />
-              </div>
-            </main>
-          </div>
-
-          {/* Mobile Layout */}
-          <div className="lg:hidden">
-            <main className="flex-1 min-h-screen bg-gray-50">
-              <div className="p-4">
+              <div className="p-4 lg:p-6">
                 <Outlet />
               </div>
             </main>

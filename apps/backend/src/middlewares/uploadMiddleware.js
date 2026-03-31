@@ -8,30 +8,54 @@ import { optimizeVideo, generateVideoThumbnail, getVideoMetadata } from '../util
  */
 export const handleMultipleImageUpload = async (req, res, next) => {
   try {
-    // Use multer to handle multiple uploads
-    uploadImage.array('images', 5)(req, res, async (err) => {
+    console.log('🔍 Starting image upload middleware...');
+    console.log('🔍 Headers:', req.headers['content-type']);
+    
+    // Use multer to handle multiple uploads (up to 10 files)
+    uploadImage.array('images', 10)(req, res, async (err) => {
+      console.log('🔍 Multer result - err:', err);
+      console.log('🔍 Files found:', req.files ? req.files.length : 0);
+      
+      // Handle specific multer errors
       if (err) {
-        console.error('Multer error:', err);
-        return res.status(400).json({
-          success: false,
-          message: 'Upload failed',
-          error: err.message
-        });
+        if (err.code === 'LIMIT_FILE_COUNT') {
+          return res.status(400).json({
+            success: false,
+            message: 'Too many files. Maximum 10 images allowed.',
+            error: err.message
+          });
+        } else if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({
+            success: false,
+            message: 'File too large. Maximum size is 5MB per image.',
+            error: err.message
+          });
+        } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+          // This is expected when no files are uploaded
+          console.log('📝 No files uploaded, continuing...');
+        } else {
+          console.error('❌ Multer error:', err);
+          return res.status(400).json({
+            success: false,
+            message: 'Upload failed',
+            error: err.message
+          });
+        }
       }
 
-      // Check if files were uploaded
+      // If no files uploaded, continue without processing
       if (!req.files || req.files.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'No image files provided'
-        });
+        console.log('📝 No files to process, continuing...');
+        return next();
       }
 
+      console.log('✅ Images to process:', req.files.length);
       try {
         const processedImages = [];
         
         // Process each image
         for (const file of req.files) {
+          console.log('🔍 Processing file:', file.originalname);
           // Additional validation
           const validation = validateImage(file);
           if (!validation.isValid) {
@@ -72,10 +96,11 @@ export const handleMultipleImageUpload = async (req, res, next) => {
                            processedImages.reduce((sum, img) => sum + img.size, 0) * 100).toFixed(2)
         };
 
+        console.log('✅ Image processing completed');
         next();
 
       } catch (validationError) {
-        console.error('Image validation/optimization error:', validationError);
+        console.error('❌ Image validation/optimization error:', validationError);
         return res.status(500).json({
           success: false,
           message: 'Image processing failed',
@@ -85,7 +110,7 @@ export const handleMultipleImageUpload = async (req, res, next) => {
     });
 
   } catch (error) {
-    console.error('Upload middleware error:', error);
+    console.error('❌ Upload middleware error:', error);
     return res.status(500).json({
       success: false,
       message: 'Upload middleware failed',

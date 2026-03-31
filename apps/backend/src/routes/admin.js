@@ -570,6 +570,8 @@ router.get('/products', async (req, res, next) => {
 
   try {
 
+    console.log('🔍 Admin products query params:', req.query);
+
     const page = parseInt(req.query.page) || 1;
 
     const limit = parseInt(req.query.limit) || 20;
@@ -596,6 +598,8 @@ router.get('/products', async (req, res, next) => {
 
     }
 
+    console.log('🔍 Admin products query:', query);
+
 
 
     const products = await Product.find(query)
@@ -609,6 +613,8 @@ router.get('/products', async (req, res, next) => {
       .skip(skip)
 
       .limit(limit);
+
+    console.log('🔍 Found products:', products.length);
 
 
 
@@ -2051,8 +2057,6 @@ router.get('/vendors', async (req, res, next) => {
     // Build query
     const query = { role: 'vendor' };
 
-    console.log('🔍 Admin vendors query:', query);
-    console.log('🔍 Admin vendors query params:', req.query);
 
     if (req.query.search) {
       query.$or = [
@@ -2067,7 +2071,6 @@ router.get('/vendors', async (req, res, next) => {
       };
     }
 
-    console.log('🔍 Final vendor query:', query);
 
     const vendors = await User.find(query)
       .select('-password')
@@ -2075,13 +2078,7 @@ router.get('/vendors', async (req, res, next) => {
       .skip(skip)
       .limit(limit);
 
-    console.log('🔍 Vendors found:', vendors.length);
-    vendors.forEach(v => {
-      console.log('  -', v._id, v.name, v.email, v.role, v.vendorRequest?.approved);
-    });
-
     const total = await User.countDocuments(query);
-    console.log('🔍 Total vendors count:', total);
 
     res.json({
       success: true,
@@ -2224,53 +2221,119 @@ router.patch('/vendors/:id/toggle-status', async (req, res, next) => {
   }
 });
 
-// @desc    Create product
+// @desc    Create product with async upload progress
 // @route   POST /api/v1/admin/products
 // @access  Private (Admin)
 router.post('/products', protect, authorize('admin'), handleMultipleImageUpload, validate(createProductSchema), async (req, res, next) => {
   try {
+    // Generate unique upload ID for progress tracking
+    const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    // Start upload progress tracking
+    req.app.get('io')?.emit('upload:progress', {
+      uploadId,
+      status: 'started',
+      progress: 0,
+      message: 'Initializing upload...',
+      productName: req.body.name || 'Unknown Product'
+    })
+
     const productData = {
       ...req.body,
-      vendor: req.body.vendor // Admin can specify vendor
-    };
-
-    // Handle image uploads
-    if (req.files && req.files.length > 0) {
-      const uploadService = await getDefaultUploadService();
-      const uploadedImages = [];
-
-      // Upload each image
-      for (const file of req.files) {
-        const uploadResult = await uploadService.uploadFile(
-          file.buffer,
-          file.originalname,
-          'products'
-        );
-
-        uploadedImages.push({
-          url: uploadResult.url,
-          alt: req.body.imageAlt || productData.name,
-          isMain: uploadedImages.length === 0 // First image is main
-        });
-      }
-
-      productData.images = uploadedImages;
+      vendor: req.user._id,
+      uploadId
     }
 
-    const product = await Product.create(productData);
+    // Process images with progress updates
+    if (req.files && req.files.length > 0) {
+      const uploadService = getDefaultUploadService()
+      const uploadedImages = []
+
+      // Emit progress for each image
+      for (let i = 0; i < req.files.length; i++) {
+        const file = req.files[i]
+
+        // Update progress
+        const progress = Math.round(((i + 1) / req.files.length) * 80) // 80% for images
+        req.app.get('io')?.emit('upload:progress', {
+          uploadId,
+          status: 'uploading',
+          progress,
+          message: `Uploading image ${i + 1} of ${req.files.length}...`,
+          currentImage: i + 1,
+          totalImages: req.files.length
+        })
+
+        try {
+          const uploadResult = await uploadService.uploadFile(
+            file.buffer,
+            file.originalname,
+            'products'
+          );
+
+          uploadedImages.push({
+            url: uploadResult.url,
+            publicId: uploadResult.publicId,
+            altText: req.body.name || file.originalname
+          })
+
+          // Small delay to prevent overwhelming the client
+          await new Promise(resolve => setTimeout(resolve, 100))
+
+        } catch (uploadError) {
+          console.error(`Error uploading image ${file.originalname}:`, uploadError)
+          // Continue with other images even if one fails
+        }
+      }
+
+      productData.images = uploadedImages
+    }
+
+    // Final processing
+    req.app.get('io')?.emit('upload:progress', {
+      uploadId,
+      status: 'processing',
+      progress: 90,
+      message: 'Finalizing product creation...'
+    })
+
+    const product = await Product.create(productData)
 
     // Clear product cache
     await deleteCachePattern('products:*');
 
+    // Success notification
+    req.app.get('io')?.emit('upload:progress', {
+      uploadId,
+      status: 'completed',
+      progress: 100,
+      message: 'Product created successfully!',
+      productId: product._id
+    })
+
     res.status(201).json({
       success: true,
-      data: product
-    });
+      data: {
+        product,
+        uploadId
+      }
+    })
+
   } catch (error) {
-    next(error);
+    console.error('Product creation error:', error)
+
+    // Error notification
+    const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    req.app.get('io')?.emit('upload:progress', {
+      uploadId,
+      status: 'error',
+      progress: 0,
+      message: error.message || 'Failed to create product',
+      error: error.message
+    })
+
+    next(error)
   }
 });
 
-
 export default router;
-

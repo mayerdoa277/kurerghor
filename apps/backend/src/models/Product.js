@@ -9,13 +9,13 @@ const productSchema = new mongoose.Schema({
   },
   slug: {
     type: String,
-    required: true,
+    required: false,
     unique: true,
     lowercase: true
   },
   description: {
     type: String,
-    required: [true, 'Product description is required'],
+    required: false,
     maxlength: [2000, 'Description cannot be more than 2000 characters']
   },
   shortDescription: {
@@ -25,7 +25,7 @@ const productSchema = new mongoose.Schema({
   vendor: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: false
   },
   category: {
     type: mongoose.Schema.Types.ObjectId,
@@ -42,7 +42,7 @@ const productSchema = new mongoose.Schema({
   },
   sku: {
     type: String,
-    required: true,
+    required: false,
     unique: true
   },
   price: {
