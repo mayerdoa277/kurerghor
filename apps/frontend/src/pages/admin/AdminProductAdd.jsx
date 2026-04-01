@@ -33,30 +33,31 @@ const AdminProductAdd = () => {
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
+    sku: '',
     description: '',
     price: '',
-    comparePrice: '',
     costPrice: '',
-    sku: '',
-    barcode: '',
-    trackQuantity: true,
+    regularPrice: '',
+    salePrice: '',
     quantity: '',
+    trackQuantity: true,
     allowBackorder: false,
-    weight: '',
+    status: 'active',
+    vendor: '',
+    category: '',
+    tags: '',
+    seoTitle: '',
+    seoDescription: '',
+    images: [],
     dimensions: {
       length: '',
       width: '',
       height: ''
-    },
-    categoryId: '',
-    vendorId: '',
-    status: 'active',
-    tags: '',
-    seoTitle: '',
-    seoDescription: '',
-    images: []
+    }
   })
   const [previewImages, setPreviewImages] = useState([])
+  const [imageSizes, setImageSizes] = useState([]) // Track individual image sizes
+  const [totalImageSize, setTotalImageSize] = useState(0) // Track total size in MB
   const [errors, setErrors] = useState({})
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -118,8 +119,9 @@ useEffect(() => {
           status: 'started'
         }
         
+        // Store data in sessionStorage BEFORE redirect
         sessionStorage.setItem('productUploadData', JSON.stringify(uploadData))
-        sessionStorage.setItem('productUploadProgress', '0')
+        sessionStorage.setItem('productUploadProgress', '5') // Start with 5% progress
         
         // Debug logging
         console.log('🚀 Upload Started - Storing data:', uploadData)
@@ -140,8 +142,11 @@ useEffect(() => {
         // Store event listener for cleanup
         window._uploadProgressListener = handleUploadProgress
         
-        // Immediately redirect to products page
-        navigate('/admin/products')
+        // Small delay to ensure sessionStorage is set before redirect
+        setTimeout(() => {
+          // Immediately redirect to products page
+          navigate('/admin/products')
+        }, 200)
       },
       onSuccess: (data) => {
         // Clear upload session data
@@ -288,11 +293,32 @@ useEffect(() => {
       return
     }
 
+    // Calculate sizes for new files
+    const newImageSizes = validFiles.map(file => ({
+      size: file.size,
+      sizeMB: (file.size / (1024 * 1024)).toFixed(2),
+      name: file.name
+    }))
+
+    // Check if any file exceeds 20MB
+    const oversizedFiles = newImageSizes.filter(img => img.size > 20 * 1024 * 1024)
+    if (oversizedFiles.length > 0) {
+      toast.error(`${oversizedFiles.map(f => f.name).join(', ')} exceed 20MB limit.`)
+      return
+    }
+
     const newImages = [...formData.images, ...validFiles]
     setFormData(prev => ({ ...prev, images: newImages }))
 
     const newPreviews = validFiles.map(file => URL.createObjectURL(file))
     setPreviewImages(prev => [...prev, ...newPreviews])
+
+    // Update image sizes and total
+    setImageSizes(prev => [...prev, ...newImageSizes])
+    setTotalImageSize(prev => {
+      const newTotal = prev + newImageSizes.reduce((sum, img) => sum + parseFloat(img.sizeMB), 0)
+      return parseFloat(newTotal.toFixed(2))
+    })
 
     validFiles.forEach(file => URL.revokeObjectURL(file))
   }
@@ -332,6 +358,17 @@ useEffect(() => {
         URL.revokeObjectURL(prev[index])
       }
       return newPreviews
+    })
+    
+    // Update image sizes and total
+    setImageSizes(prev => {
+      const newSizes = prev.filter((_, i) => i !== index)
+      const removedSize = prev[index]?.sizeMB || 0
+      setTotalImageSize(currentTotal => {
+        const newTotal = currentTotal - parseFloat(removedSize)
+        return parseFloat(Math.max(0, newTotal).toFixed(2))
+      })
+      return newSizes
     })
   }
 
@@ -711,7 +748,7 @@ useEffect(() => {
             <div className="mt-8 space-y-2">
               <label className="block text-sm font-semibold text-gray-700 flex items-center">
                 Description
-                <span className="ml-2 text-xs text-gray-400 font-normal">Rich text supported</span>
+                <span className="ml-2 text-xs text-gray-400 font-normal">Optional - Rich text supported</span>
               </label>
               <div className="relative group">
                 <textarea
@@ -720,7 +757,7 @@ useEffect(() => {
                   onChange={handleInputChange}
                   rows="2 sm:rows-3 lg:rows-4"
                   className="block w-full px-2 sm:px-3 lg:px-4 py-2 sm:py-2.5 lg:py-3 rounded-md sm:rounded-lg lg:rounded-xl border border-gray-200/50 bg-gray-50/50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 group-hover:bg-gray-50 resize-none text-xs sm:text-sm"
-                  placeholder="Describe your product..."
+                  placeholder="Describe your product (optional)..."
                 />
                 <div className="absolute inset-0 rounded-md sm:rounded-lg lg:rounded-xl bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-focus-within:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
               </div>
@@ -1271,7 +1308,7 @@ useEffect(() => {
                     {isDragging ? 'Drop images' : 'Upload images'}
                   </span>
                   <div className="flex flex-col sm:flex-row items-center text-xs sm:text-sm text-gray-500 space-y-1 sm:space-y-0 sm:space-x-2">
-                    <span>PNG, JPG, GIF up to 5MB</span>
+                    <span>PNG, JPG, GIF up to 20MB</span>
                     <span className="hidden sm:inline text-gray-300">•</span>
                     <span>Max 10 images</span>
                   </div>
@@ -1298,6 +1335,38 @@ useEffect(() => {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
+                    {/* Size Capacity Indicator */}
+                    <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/50">
+                      <div className="flex items-center space-x-2">
+                        <Package className="w-4 h-4 text-blue-600" />
+                        <span className="text-xs font-medium text-blue-700">
+                          {totalImageSize.toFixed(1)}MB / 200MB
+                        </span>
+                      </div>
+                      {/* Progress Bar */}
+                      <div className="w-16 h-1.5 bg-blue-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min((totalImageSize / 200) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                      {/* Status Indicator */}
+                      {totalImageSize > 180 && (
+                        <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                      )}
+                    </div>
+                    
+                    {/* Mobile Size Display */}
+                    <div className="sm:hidden flex items-center space-x-1 px-2 py-1 rounded-lg bg-blue-50 border border-blue-200/50">
+                      <Package className="w-3 h-3 text-blue-600" />
+                      <span className="text-xs font-medium text-blue-700">
+                        {totalImageSize.toFixed(1)}MB
+                      </span>
+                      {totalImageSize > 180 && (
+                        <div className="w-1.5 h-1.5 bg-orange-400 rounded-full"></div>
+                      )}
+                    </div>
+                    
                     <span className="text-xs text-gray-500 hidden sm:block">
                       Drag to reorder • Click to remove
                     </span>
@@ -1306,6 +1375,8 @@ useEffect(() => {
                       onClick={() => {
                         setFormData(prev => ({ ...prev, images: [] }))
                         setPreviewImages([])
+                        setImageSizes([])
+                        setTotalImageSize(0)
                       }}
                       className="px-3 py-1.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg font-medium transition-all duration-200"
                     >
@@ -1349,12 +1420,17 @@ useEffect(() => {
                         </button>
                       </div>
                       
-                      {/* Image Info - Compact */}
+                      {/* Image Info - Compact with Size */}
                       <div className="mt-1 px-1 py-1 bg-gray-50 rounded border border-gray-100">
-                        <div className="flex items-center justify-center">
+                        <div className="flex flex-col items-center space-y-0.5">
                           <span className="text-xs text-gray-500 font-medium">
                             #{index + 1}
                           </span>
+                          {imageSizes[index] && (
+                            <span className="text-xs text-gray-400">
+                              {imageSizes[index].sizeMB}MB
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

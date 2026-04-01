@@ -14,11 +14,34 @@ export const validate = (schema) => {
         const jsonFields = ['dimensions', 'tags', 'weight', 'inventory', 'seo'];
         if (jsonFields.includes(key)) {
           try {
-            data[key] = JSON.parse(req.body[key]);
-            console.log(`✅ Parsed ${key}:`, data[key]);
+            // Handle empty tags string
+            if (key === 'tags' && (req.body[key] === '' || req.body[key] === '""' || req.body[key] === '[]')) {
+              data[key] = []; // Convert empty tags to empty array
+              console.log(`✅ Converted empty ${key} to empty array:`, data[key]);
+            } else {
+              data[key] = JSON.parse(req.body[key]);
+              console.log(`✅ Parsed ${key}:`, data[key]);
+            }
           } catch {
+            // If JSON parsing fails and it's tags, convert empty string to array
+            if (key === 'tags' && (req.body[key] === '' || req.body[key] === '""')) {
+              data[key] = []; // Convert empty tags to empty array
+              console.log(`✅ Converted empty ${key} to empty array:`, data[key]);
+            } else {
+              data[key] = req.body[key];
+              console.log(`📝 Kept ${key} as string:`, data[key]);
+            }
+          }
+        } else if (key === 'category') {
+          // Special handling for category field - it might be sent as array
+          if (Array.isArray(req.body[key])) {
+            // Take the last non-empty value from the array
+            const categoryValue = req.body[key].filter(cat => cat !== '').pop() || '';
+            data[key] = categoryValue;
+            console.log(`📝 Converted category array to string:`, data[key]);
+          } else {
             data[key] = req.body[key];
-            console.log(`📝 Kept ${key} as string:`, data[key]);
+            console.log(`📝 Kept category as string:`, data[key]);
           }
         } else {
           // Keep all other fields as strings
@@ -84,15 +107,29 @@ export const changePasswordSchema = Joi.object({
 export const createProductSchema = Joi.object({
   name: Joi.string().required().min(1).max(100),
   slug: Joi.string().optional().min(1).max(100),
-  description: Joi.string().optional().min(1).max(2000),
+  description: Joi.string().optional().allow('').max(2000),
   shortDescription: Joi.string().optional().max(200),
   category: Joi.string().required().pattern(/^[0-9a-fA-F]{24}$/),
   subcategories: Joi.array().items(Joi.string().pattern(/^[0-9a-fA-F]{24}$/)).optional(),
   brand: Joi.string().optional(),
   sku: Joi.string().optional(),
   price: Joi.number().required().min(0),
-  compareAtPrice: Joi.number().optional().min(0),
-  costPrice: Joi.number().optional().min(0),
+  regularPrice: Joi.alternatives().try(
+    Joi.number().optional().min(0),
+    Joi.string().allow('').optional()
+  ),
+  salePrice: Joi.alternatives().try(
+    Joi.number().optional().min(0),
+    Joi.string().allow('').optional()
+  ),
+  compareAtPrice: Joi.alternatives().try(
+    Joi.number().optional().min(0),
+    Joi.string().allow('').optional()
+  ),
+  costPrice: Joi.alternatives().try(
+    Joi.number().optional().min(0),
+    Joi.string().allow('').optional()
+  ),
   barcode: Joi.string().optional().allow(''),
   images: Joi.array().items(Joi.object({
     url: Joi.string().uri().required(),
@@ -151,14 +188,28 @@ export const createProductSchema = Joi.object({
 
 export const updateProductSchema = Joi.object({
   name: Joi.string().optional().min(1).max(100),
-  description: Joi.string().optional().min(1).max(2000),
+  description: Joi.string().optional().allow('').max(2000),
   shortDescription: Joi.string().optional().max(200),
   category: Joi.string().optional().pattern(/^[0-9a-fA-F]{24}$/),
   subcategories: Joi.array().items(Joi.string().pattern(/^[0-9a-fA-F]{24}$/)).optional(),
   brand: Joi.string().optional(),
   price: Joi.number().optional().min(0),
-  compareAtPrice: Joi.number().optional().min(0),
-  costPrice: Joi.number().optional().min(0),
+  regularPrice: Joi.alternatives().try(
+    Joi.number().optional().min(0),
+    Joi.string().allow('').optional()
+  ),
+  salePrice: Joi.alternatives().try(
+    Joi.number().optional().min(0),
+    Joi.string().allow('').optional()
+  ),
+  compareAtPrice: Joi.alternatives().try(
+    Joi.number().optional().min(0),
+    Joi.string().allow('').optional()
+  ),
+  costPrice: Joi.alternatives().try(
+    Joi.number().optional().min(0),
+    Joi.string().allow('').optional()
+  ),
   images: Joi.array().items(Joi.object({
     url: Joi.string().uri().required(),
     alt: Joi.string().optional(),

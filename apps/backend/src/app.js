@@ -19,15 +19,11 @@ if (process.env.NODE_ENV !== "production") {
   dotenv.config({ path: join(__dirname, "..", ".env") });
 }
 
-// Debug environment variables
-
-console.log("🔍 Environment variables loaded:");
-
-console.log("BREVO_API_KEY:", process.env.BREVO_API_KEY ? "EXISTS" : "MISSING");
-
-console.log("EMAIL_FROM:", process.env.EMAIL_FROM);
-
-console.log("EMAIL_FROM_NAME:", process.env.EMAIL_FROM_NAME);
+// Log key environment variables (simplified)
+if (process.env.NODE_ENV === 'development') {
+  console.log(" Environment: Development Mode");
+  console.log(" Port:", envConfig.port);
+}
 
 import { createServer } from "http";
 
@@ -40,6 +36,10 @@ import { connectRedis } from "./config/redis.js";
 import errorHandler from "./middlewares/errorHandler.js";
 
 import notFound from "./middlewares/notFound.js";
+
+import requestLogger from "./middlewares/requestLogger.js";
+
+import { envConfig } from "./config/env.js";
 
 // Routes
 
@@ -82,22 +82,15 @@ const app = express();
 app.set("trust proxy", 1);
 
 // 🔥 MUST BE FIRST MIDDLEWARE - CORS Configuration
+const corsOptions = {
+  origin: envConfig.allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+};
 
-app.use(
-  cors({
-    origin: [
-      "http://localhost:3000",
-
-      "https://kurerghor.vercel.app",
-
-      "https://kurerghor.com",
-    ],
-
-    credentials: true,
-  }),
-);
-
-app.options("*", cors());
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 // Security middleware (AFTER CORS)
 
@@ -109,20 +102,18 @@ app.use(
 
 app.use(mongoSanitize());
 
+// API Request Logger (for debugging)
+app.use(requestLogger);
+
 // Rate limiting
 
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
-
+  windowMs: envConfig.rateLimit.windowMs,
+  max: envConfig.rateLimit.maxRequests,
   message: "Too many requests from this IP, please try again later.",
-
   trustProxy: true, // Now works with app.set('trust proxy', 1)
-
   skip: (req) => {
     // Skip rate limiting for health checks and Google OAuth
-
     return req.url === "/health" || req.url.includes("/auth/google");
   },
 });
@@ -207,7 +198,7 @@ app.use(notFound);
 
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
+const PORT = envConfig.port;
 
 // Start server
 

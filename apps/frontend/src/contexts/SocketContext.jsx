@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { io } from 'socket.io-client'
 import { useAuthStore } from '../store/authStore'
+import { envConfig } from '../config/env.js'
 
 const SocketContext = createContext()
 
@@ -18,36 +19,86 @@ export const SocketProvider = ({ children }) => {
   const token = useAuthStore((state) => state.token)
 
   useEffect(() => {
-    if (token) {
-      const socketInstance = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
-        auth: {
-          token: token
-        },
-        withCredentials: true
+    console.log('🔌 Initializing socket connection...');
+    
+    // Get socket URL from environment configuration
+    const socketUrl = envConfig.socketUrl;
+    console.log('🌐 Connecting to socket URL:', socketUrl);
+    console.log('🔧 Environment:', envConfig.mode, '| Debug enabled:', envConfig.enableDebug);
+    
+    // Create socket instance with proper configuration
+    const socketInstance = io(socketUrl, {
+      withCredentials: true,
+      transports: ['websocket', 'polling'], // Allow fallback to polling
+      timeout: 20000,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      // Temporarily remove auth for debugging
+      // auth: token ? { token, userId: 'user123' } : { userId: 'guest123' }
+      auth: { userId: 'user123' } // Temporary user ID for room management
+    })
+
+    // Debug: Log socket instance details
+    console.log('🔍 Socket instance created:', {
+      type: typeof socketInstance,
+      hasOn: typeof socketInstance.on === 'function',
+      hasEmit: typeof socketInstance.emit === 'function',
+      methods: Object.getOwnPropertyNames(Object.getPrototypeOf(socketInstance)).slice(0, 15)
+    });
+
+    // Connection event
+    socketInstance.on('connect', () => {
+      console.log('✅ Socket connected successfully!')
+      console.log('📋 Socket ID:', socketInstance.id)
+      console.log('🌐 Transport:', socketInstance.io.engine.transport.name)
+      setConnected(true)
+    })
+
+    // Disconnection event
+    socketInstance.on('disconnect', (reason) => {
+      console.log('❌ Socket disconnected. Reason:', reason)
+      setConnected(false)
+    })
+
+    // Connection error event
+    socketInstance.on('connect_error', (error) => {
+      console.error('❌ Socket connection error:', error)
+      console.error('❌ Error details:', {
+        message: error.message,
+        description: error.description,
+        context: error.context,
+        type: error.type,
+        advice: error.advice
       })
+    })
 
-      socketInstance.on('connect', () => {
-        console.log('Socket connected')
-        setConnected(true)
-      })
+    // Reconnection events
+    socketInstance.on('reconnect', (attemptNumber) => {
+      console.log(`� Socket reconnected after ${attemptNumber} attempts`)
+    })
 
-      socketInstance.on('disconnect', () => {
-        console.log('Socket disconnected')
-        setConnected(false)
-      })
+    socketInstance.on('reconnect_attempt', (attemptNumber) => {
+      console.log(`🔄 Socket reconnection attempt ${attemptNumber}`)
+    })
 
-      socketInstance.on('vendor:update', (data) => {
-        console.log('Vendor update received:', data)
-        // This will be handled by components that listen for vendor updates
-      })
+    socketInstance.on('reconnect_error', (error) => {
+      console.error('❌ Socket reconnection error:', error)
+    })
 
-      setSocket(socketInstance)
+    socketInstance.on('reconnect_failed', () => {
+      console.error('❌ Socket reconnection failed')
+    })
 
-      return () => {
-        socketInstance.disconnect()
-      }
+    // Set socket instance
+    setSocket(socketInstance)
+
+    // Cleanup on unmount
+    return () => {
+      console.log('🧹 Disconnecting socket...')
+      socketInstance.disconnect()
     }
-  }, [token])
+  }, []) // Remove token dependency for now
 
   const value = {
     socket,

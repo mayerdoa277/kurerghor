@@ -5,11 +5,7 @@ let redisClient = null;
 export const connectRedis = async () => {
   try {
     // Use Railway's REDIS_URL directly in production, localhost in development
-    // Railway provides REDIS_URL with the correct connection string
-    const redisUrl = process.env.REDIS_URL || 
-                    (process.env.NODE_ENV === 'production' 
-                      ? `redis://:${process.env.REDIS_PASSWORD}@${process.env.REDISHOST}:${process.env.REDISPORT}`
-                      : 'redis://127.0.0.1:6379');
+    const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 
     redisClient = createClient({
       url: redisUrl
@@ -17,16 +13,16 @@ export const connectRedis = async () => {
 
     redisClient.on('error', (err) => {
       if (process.env.NODE_ENV === 'production') {
-        console.error('Redis Client Error:', err);
+        console.error('❌ Redis Error:', err.message);
       } else {
-        console.log('Redis not available locally, skipping Redis features');
+        console.log('⚠️ Redis not available locally, using memory fallback');
         redisClient = null;
         return;
       }
     });
 
     redisClient.on('connect', () => {
-      console.log('Redis Client Connected');
+      console.log('✅ Redis connected');
     });
 
     await redisClient.connect();

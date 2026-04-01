@@ -12,12 +12,11 @@ export const initializeEmailQueue = async () => {
     const redisUrl = process.env.REDIS_URL;
     
     if (!redisUrl) {
-      console.log('⚠️ REDIS_URL not found, email queue will not work');
+      console.log('⚠️ REDIS_URL not found, email queue disabled');
       return;
     }
     
-    console.log('🔧 Initializing email queue with Redis URL:', redisUrl);
-    console.log('🔧 Redis URL format:', redisUrl.startsWith('redis://') ? 'VALID' : 'INVALID');
+    console.log('🔧 Initializing email queue...');
     
     // Parse Redis URL to get connection details for BullMQ
     let connectionConfig;
@@ -31,11 +30,6 @@ export const initializeEmailQueue = async () => {
         username: url.username || undefined,
         password: url.password || undefined
       };
-      console.log('🔧 Parsed Redis config:', {
-        host: connectionConfig.host,
-        port: connectionConfig.port,
-        hasAuth: !!(connectionConfig.username && connectionConfig.password)
-      });
     } else {
       connectionConfig = redisUrl;
     }
@@ -52,7 +46,7 @@ export const initializeEmailQueue = async () => {
       const { type, to, data } = job.data;
       
       try {
-        let emailHtml, subject;
+        let subject, emailHtml;
         
         switch (type) {
           case 'verification':
@@ -98,24 +92,15 @@ export const initializeEmailQueue = async () => {
     
     // Handle failed jobs
     emailWorker.on('failed', (job, err) => {
-      console.error(`❌ Email job failed:`, {
-        id: job.id,
-        type: job.data.type,
-        to: job.data.to,
-        error: err.message
-      });
+      console.error(`❌ Email failed: ${job.data.type} to ${job.data.to}`);
     });
     
     // Handle completed jobs
-    emailWorker.on('completed', (job, result) => {
-      console.log(`✅ Email job completed:`, {
-        id: job.id,
-        type: job.data.type,
-        to: job.data.to
-      });
+    emailWorker.on('completed', (job) => {
+      console.log(`✅ Email sent: ${job.data.type} to ${job.data.to}`);
     });
     
-    console.log('✅ Email worker initialized successfully');
+    console.log('✅ Email queue ready');
     
   } catch (error) {
     console.error('❌ Failed to initialize email queue:', error);

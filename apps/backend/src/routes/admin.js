@@ -2246,7 +2246,7 @@ router.post('/products', protect, authorize('admin'), handleMultipleImageUpload,
 
     // Process images with progress updates
     if (req.files && req.files.length > 0) {
-      const uploadService = getDefaultUploadService()
+      const uploadService = await getDefaultUploadService()
       const uploadedImages = []
 
       // Emit progress for each image

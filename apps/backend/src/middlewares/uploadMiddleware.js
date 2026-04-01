@@ -27,7 +27,7 @@ export const handleMultipleImageUpload = async (req, res, next) => {
         } else if (err.code === 'LIMIT_FILE_SIZE') {
           return res.status(400).json({
             success: false,
-            message: 'File too large. Maximum size is 5MB per image.',
+            message: 'File too large. Maximum size is 20MB per image.',
             error: err.message
           });
         } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {

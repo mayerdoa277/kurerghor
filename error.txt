@@ -1,17 +1,112 @@
-🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
-AdminProducts.jsx:176 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
-AdminProducts.jsx:176 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
-AdminProducts.jsx:176 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
-AdminProducts.jsx:176 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
-AdminProducts.jsx:176 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
-AdminProducts.jsx:176 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
-AdminProducts.jsx:176 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
-AdminProducts.jsx:176 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
-AdminProducts.jsx:176 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
-AdminProducts.jsx:176 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
-AdminProducts.jsx:176 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
-AdminProducts.jsx:176 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
-AdminProducts.jsx:176 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
-AdminProducts.jsx:176 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
-AdminProducts.jsx:176 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
-AdminProducts.jsx:176 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
+🚀 API Request: {method: 'GET', url: '/admin/categories', baseURL: 'http://localhost:5000/api/v1', fullURL: 'http://localhost:5000/api/v1/admin/categories', headers: AxiosHeaders, …}
+api.js:22 🚀 API Request: {method: 'GET', url: '/admin/vendors', baseURL: 'http://localhost:5000/api/v1', fullURL: 'http://localhost:5000/api/v1/admin/vendors', headers: AxiosHeaders, …}
+api.js:61 ✅ API Response: {status: 200, url: '/admin/categories', data: {…}}
+api.js:61 ✅ API Response: {status: 200, url: '/admin/vendors', data: {…}}
+AdminProductAdd.jsx:127 🚀 Upload Started - Storing data: {uploadId: 'upload_1775067896236_0qfuukevo', productName: 'jaloprodcut', imageCount: 10, startTime: 1775067896236, status: 'started'}
+AdminProductAdd.jsx:128 📦 Session Storage after storing: {data: '{"uploadId":"upload_1775067896236_0qfuukevo","prod…:10,"startTime":1775067896236,"status":"started"}', progress: '5'}
+api.js:22 🚀 API Request: {method: 'POST', url: '/admin/products', baseURL: 'http://localhost:5000/api/v1', fullURL: 'http://localhost:5000/api/v1/admin/products', headers: AxiosHeaders, …}
+AdminProductAdd.jsx:137 📊 Progress updated: 38
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (18) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 18, pages: 1}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (18) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 18, pages: 1}
+AdminProductAdd.jsx:137 📊 Progress updated: 100
+AdminProducts.jsx:75 🔌 Setting up WebSocket listener... {socket: true, socketType: 'object', socketMethods: Array(41), connected: true, isUploading: false, …}
+AdminProducts.jsx:156 👂 Adding socket listener for upload:progress...
+AdminProducts.jsx:179 🔍 Upload Progress Check: {progress: '100', data: {…}, error: null, isUploading: false, uploadProgress: 0, …}
+AdminProducts.jsx:191 📦 Found upload data, setting up progress bar: {uploadId: 'upload_1775067896236_0qfuukevo', productName: 'jaloprodcut', imageCount: 10, startTime: 1775067896236, status: 'started'}
+AdminProducts.jsx:160 🧹 Cleaning up WebSocket listener...
+AdminProducts.jsx:75 🔌 Setting up WebSocket listener... {socket: true, socketType: 'object', socketMethods: Array(41), connected: true, isUploading: false, …}
+AdminProducts.jsx:156 👂 Adding socket listener for upload:progress...
+AdminProducts.jsx:179 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
+api.js:22 🚀 API Request: {method: 'GET', url: '/admin/products', baseURL: 'http://localhost:5000/api/v1', fullURL: 'http://localhost:5000/api/v1/admin/products', headers: AxiosHeaders, …}
+api.js:22 🚀 API Request: {method: 'GET', url: '/admin/vendors', baseURL: 'http://localhost:5000/api/v1', fullURL: 'http://localhost:5000/api/v1/admin/vendors', headers: AxiosHeaders, …}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (18) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 18, pages: 1}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (18) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 18, pages: 1}
+AdminProducts.jsx:179 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
+AdminProducts.jsx:179 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
+AdminProducts.jsx:179 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
+AdminProducts.jsx:179 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
+AdminProducts.jsx:179 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
+AdminProducts.jsx:179 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
+api.js:61 ✅ API Response: {status: 200, url: '/admin/vendors', data: {…}}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (18) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 18, pages: 1}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (18) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 18, pages: 1}
+api.js:61 ✅ API Response: {status: 200, url: '/admin/products', data: {…}}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (18) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 18, pages: 1}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (18) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 18, pages: 1}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (18) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 18, pages: 1}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (18) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 18, pages: 1}
+api.js:61 ✅ API Response: {status: 201, url: '/admin/products', data: {…}}
+api.js:22 🚀 API Request: {method: 'GET', url: '/admin/products', baseURL: 'http://localhost:5000/api/v1', fullURL: 'http://localhost:5000/api/v1/admin/products', headers: AxiosHeaders, …}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (18) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 18, pages: 1}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (18) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 18, pages: 1}
+api.js:61 ✅ API Response: {status: 200, url: '/admin/products', data: {…}}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (19) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 19, pages: 1}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (19) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 19, pages: 1}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (19) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 19, pages: 1}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (19) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 19, pages: 1}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (19) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 19, pages: 1}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (19) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 19, pages: 1}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (19) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 19, pages: 1}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (19) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 19, pages: 1}
+AdminProducts.jsx:265 🔄 Window focused, checking upload progress...
+AdminProducts.jsx:179 🔍 Upload Progress Check: {progress: null, data: null, error: null, isUploading: false, uploadProgress: 0, …}
+api.js:22 🚀 API Request: {method: 'GET', url: '/admin/products', baseURL: 'http://localhost:5000/api/v1', fullURL: 'http://localhost:5000/api/v1/admin/products', headers: AxiosHeaders, …}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (19) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 19, pages: 1}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (19) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 19, pages: 1}
+api.js:61 ✅ API Response: {status: 200, url: '/admin/products', data: {…}}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (19) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 19, pages: 1}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (19) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 19, pages: 1}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (19) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 19, pages: 1}
+AdminProducts.jsx:69 Products API Response: {data: {…}, status: 200, statusText: 'OK', headers: AxiosHeaders, config: {…}, …}
+AdminProducts.jsx:70 Extracted Products: (19) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AdminProducts.jsx:71 Pagination: {page: 1, limit: 20, total: 19, pages: 1}
