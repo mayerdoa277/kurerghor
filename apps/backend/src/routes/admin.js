@@ -26,7 +26,7 @@ import { getDefaultUploadService } from '../services/uploadService.js';
 
 import { ImageKitService } from '../services/imagekitService.js';
 
-import { emitVendorUpdate } from '../sockets/socketHandler.js';
+import { emitVendorUpdate, emitUploadProgress } from '../sockets/socketHandler.js';
 
 
 
@@ -2225,12 +2225,20 @@ router.patch('/vendors/:id/toggle-status', async (req, res, next) => {
 // @route   POST /api/v1/admin/products
 // @access  Private (Admin)
 router.post('/products', protect, authorize('admin'), handleMultipleImageUpload, validate(createProductSchema), async (req, res, next) => {
+  // Generate unique upload ID for progress tracking (moved outside try block)
+  const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  
   try {
-    // Generate unique upload ID for progress tracking
-    const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-
     // Start upload progress tracking
-    req.app.get('io')?.emit('upload:progress', {
+    const userId = 'user123'; // Use the same user ID as frontend WebSocket connection
+    console.log('📡 Emitting upload progress to room:', `user:${userId}`, {
+      uploadId,
+      status: 'started',
+      progress: 0,
+      message: 'Initializing upload...',
+      productName: req.body.name || 'Unknown Product'
+    });
+    emitUploadProgress(userId, {
       uploadId,
       status: 'started',
       progress: 0,
@@ -2255,7 +2263,15 @@ router.post('/products', protect, authorize('admin'), handleMultipleImageUpload,
 
         // Update progress
         const progress = Math.round(((i + 1) / req.files.length) * 80) // 80% for images
-        req.app.get('io')?.emit('upload:progress', {
+        console.log(`📡 Emitting image upload progress (${i + 1}/${req.files.length}):`, `user:${userId}`, {
+          uploadId,
+          status: 'uploading',
+          progress,
+          message: `Uploading image ${i + 1} of ${req.files.length}...`,
+          currentImage: i + 1,
+          totalImages: req.files.length
+        });
+        emitUploadProgress(userId, {
           uploadId,
           status: 'uploading',
           progress,
@@ -2290,7 +2306,7 @@ router.post('/products', protect, authorize('admin'), handleMultipleImageUpload,
     }
 
     // Final processing
-    req.app.get('io')?.emit('upload:progress', {
+    emitUploadProgress(userId, {
       uploadId,
       status: 'processing',
       progress: 90,
@@ -2303,7 +2319,7 @@ router.post('/products', protect, authorize('admin'), handleMultipleImageUpload,
     await deleteCachePattern('products:*');
 
     // Success notification
-    req.app.get('io')?.emit('upload:progress', {
+    emitUploadProgress(userId, {
       uploadId,
       status: 'completed',
       progress: 100,
@@ -2323,8 +2339,8 @@ router.post('/products', protect, authorize('admin'), handleMultipleImageUpload,
     console.error('Product creation error:', error)
 
     // Error notification
-    const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    req.app.get('io')?.emit('upload:progress', {
+    const userId = 'user123'; // Use the same user ID as frontend WebSocket connection
+    emitUploadProgress(userId, {
       uploadId,
       status: 'error',
       progress: 0,

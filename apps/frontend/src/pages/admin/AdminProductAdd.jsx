@@ -146,7 +146,7 @@ useEffect(() => {
         setTimeout(() => {
           // Immediately redirect to products page
           navigate('/admin/products')
-        }, 200)
+        }, 500) // Increased delay to give frontend more time to set up
       },
       onSuccess: (data) => {
         // Clear upload session data
@@ -454,6 +454,9 @@ useEffect(() => {
     finalSlug = finalSlug ? `${finalSlug}-${Date.now()}` : `product-${Date.now()}`;
     
     const formDataToSubmit = new FormData()
+    
+    // Add uploadId for WebSocket room targeting
+    formDataToSubmit.append('uploadId', uploadId)
     
     // Add all basic fields 
     Object.keys(formData).forEach(key => {

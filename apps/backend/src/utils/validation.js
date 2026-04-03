@@ -183,7 +183,8 @@ export const createProductSchema = Joi.object({
       width: Joi.number().required().min(0),
       height: Joi.number().required().min(0)
     }).optional()
-  }).optional()
+  }).optional(),
+  uploadId: Joi.string().optional(), // For WebSocket room targeting
 });
 
 export const updateProductSchema = Joi.object({

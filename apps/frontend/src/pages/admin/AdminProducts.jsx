@@ -30,6 +30,9 @@ const AdminProducts = () => {
   const [uploadData, setUploadData] = useState(null)
   const [showError, setShowError] = useState(false)
   const [errorData, setErrorData] = useState(null)
+  const [earlyWebSocketEvents, setEarlyWebSocketEvents] = useState([]) // Buffer for early events
+  const [currentImageIndex, setCurrentImageIndex] = useState(0) // Track current image being uploaded
+  const [totalImages, setTotalImages] = useState(0) // Track total images
   const queryClient = useQueryClient()
   const { socket, connected } = useSocket()
 
@@ -107,49 +110,143 @@ const AdminProducts = () => {
     const handleUploadProgress = (data) => {
       console.log('📊 Upload progress via WebSocket:', data);
       
-      // Update progress if we have an active upload
-      if (isUploading && uploadData) {
-        console.log('🔄 Updating progress:', data.progress, '%');
-        // Update progress with real data from backend
-        setUploadProgress(data.progress || 0)
+      try {
+        // If we receive a 'started' event and no upload is active, start the progress bar
+        if (data.status === 'started' && !isUploading && !uploadData) {
+          console.log('🚀 Starting progress bar from WebSocket event:', data);
+          const uploadInfo = {
+            uploadId: data.uploadId,
+            productName: data.productName || 'Unknown Product',
+            imageCount: data.totalImages || 0,
+            startTime: Date.now(),
+            status: 'started'
+          };
+          
+          setUploadData(uploadInfo);
+          setIsUploading(true);
+          setUploadProgress(data.progress || 0);
+          setCurrentImageIndex(0); // Reset current image index
+          setTotalImages(data.totalImages || 0); // Set total images
+          
+          // Store in sessionStorage for persistence
+          sessionStorage.setItem('productUploadData', JSON.stringify(uploadInfo));
+          sessionStorage.setItem('productUploadProgress', (data.progress || 0).toString());
+          
+          // Process any buffered events
+          if (earlyWebSocketEvents.length > 0) {
+            console.log('🔄 Processing buffered WebSocket events:', earlyWebSocketEvents.length);
+            earlyWebSocketEvents.forEach(event => {
+              console.log('🔄 Processing buffered event:', event);
+              if (event.status === 'uploading') {
+                setUploadProgress(event.progress || 0);
+                setCurrentImageIndex(event.currentImage || 0);
+                setTotalImages(event.totalImages || 0);
+                sessionStorage.setItem('productUploadProgress', (event.progress || 0).toString());
+              } else if (event.status === 'processing') {
+                setUploadProgress(event.progress || 0);
+                sessionStorage.setItem('productUploadProgress', (event.progress || 0).toString());
+              } else if (event.status === 'completed') {
+                setTimeout(() => {
+                  setIsUploading(false);
+                  setUploadProgress(0);
+                  setUploadData(null);
+                  setCurrentImageIndex(0);
+                  setTotalImages(0);
+                  sessionStorage.removeItem('productUploadData');
+                  sessionStorage.removeItem('productUploadProgress');
+                  sessionStorage.removeItem('productUploadError');
+                  queryClient.invalidateQueries('adminProducts');
+                  queryClient.refetchQueries('adminProducts');
+                }, 1500);
+              } else if (event.status === 'error') {
+                setErrorData({
+                  error: event.message || 'Upload failed',
+                  timestamp: Date.now()
+                });
+                setShowError(true);
+                setIsUploading(false);
+                setUploadProgress(0);
+                setUploadData(null);
+                setCurrentImageIndex(0);
+                setTotalImages(0);
+                sessionStorage.removeItem('productUploadData');
+                sessionStorage.removeItem('productUploadProgress');
+              }
+            });
+            setEarlyWebSocketEvents([]);
+          }
+          return;
+        }
         
-        // Store real progress in sessionStorage
-        sessionStorage.setItem('productUploadProgress', data.progress.toString())
-        
-        // Handle completion
-        if (data.stage === 'completed') {
-          console.log('✅ Upload completed via WebSocket')
-          setTimeout(() => {
+        // Update progress if we have an active upload
+        if (isUploading && uploadData) {
+          console.log('🔄 Updating progress:', data.progress, '%');
+          // Update progress with real data from backend
+          setUploadProgress(data.progress || 0)
+          
+          // Update current image tracking if available
+          if (data.currentImage && data.totalImages) {
+            setCurrentImageIndex(data.currentImage);
+            setTotalImages(data.totalImages);
+          }
+          
+          // Store real progress in sessionStorage
+          sessionStorage.setItem('productUploadProgress', data.progress.toString())
+          
+          // Handle completion
+          if (data.status === 'completed') {
+            console.log('✅ Upload completed via WebSocket')
+            setTimeout(() => {
+              setIsUploading(false)
+              setUploadProgress(0)
+              setUploadData(null)
+              // Clear sessionStorage
+              sessionStorage.removeItem('productUploadData')
+              sessionStorage.removeItem('productUploadProgress')
+              sessionStorage.removeItem('productUploadError')
+              // Refresh products list
+              queryClient.invalidateQueries('adminProducts')
+              queryClient.refetchQueries('adminProducts')
+            }, 1500) // Show completion for 1.5 seconds before clearing
+          }
+          
+          // Handle errors
+          if (data.status === 'error') {
+            console.error('❌ Upload error via WebSocket:', data.message)
+            
+            setErrorData({
+              error: data.message || 'Upload failed',
+              timestamp: Date.now()
+            })
+            setShowError(true)
             setIsUploading(false)
             setUploadProgress(0)
             setUploadData(null)
             // Clear sessionStorage
             sessionStorage.removeItem('productUploadData')
             sessionStorage.removeItem('productUploadProgress')
-            sessionStorage.removeItem('productUploadError')
-            // Refresh products list
-            queryClient.invalidateQueries('adminProducts')
-            queryClient.refetchQueries('adminProducts')
-          }, 1500) // Show completion for 1.5 seconds before clearing
+          }
+        } else {
+          console.log('⚠️ Received progress but no active upload:', { isUploading, uploadData });
+          // Buffer early events for later processing
+          setEarlyWebSocketEvents(prev => [...prev, data])
+          console.log('📦 Buffered early WebSocket event:', data);
+        }
+      } catch (error) {
+        console.error('❌ Error in handleUploadProgress:', error)
+        
+        // Prevent infinite loop with setUploadData error
+        if (error.message === 'setUploadData is not defined') {
+          console.log('🔄 Ignoring recursive setUploadData error from catch block');
+          return
         }
         
-        // Handle errors
-        if (data.stage === 'error') {
-          console.error('❌ Upload error via WebSocket:', data.error)
-          setErrorData({
-            error: data.error || 'Upload failed',
-            timestamp: Date.now()
-          })
-          setShowError(true)
-          setIsUploading(false)
-          setUploadProgress(0)
-          setUploadData(null)
-          // Clear sessionStorage
-          sessionStorage.removeItem('productUploadData')
-          sessionStorage.removeItem('productUploadProgress')
-        }
-      } else {
-        console.log('⚠️ Received progress but no active upload:', { isUploading, uploadData });
+        // Store error in sessionStorage for display
+        sessionStorage.setItem('productUploadError', JSON.stringify({
+          error: error.message || 'Progress tracking failed',
+          isNetworkError: false,
+          timestamp: Date.now()
+        }))
       }
     }
 
@@ -168,6 +265,11 @@ const AdminProducts = () => {
   useEffect(() => {
     let interval = null
     let progressInterval = null
+    
+    // Clear any existing error data on component mount
+    sessionStorage.removeItem('productUploadData')
+    sessionStorage.removeItem('productUploadProgress')
+    sessionStorage.removeItem('productUploadError')
     
     const checkUploadProgress = () => {
       try {
@@ -189,8 +291,53 @@ const AdminProducts = () => {
           try {
             const uploadInfo = JSON.parse(data)
             console.log('📦 Found upload data, setting up progress bar:', uploadInfo);
-            setUploadData(uploadInfo)
-            setIsUploading(true)
+            
+            // Safely set upload data with error handling
+            try {
+              setUploadData(uploadInfo)
+              setIsUploading(true)
+              
+              // Process any buffered WebSocket events
+              if (earlyWebSocketEvents.length > 0) {
+                console.log('🔄 Processing buffered WebSocket events:', earlyWebSocketEvents.length);
+                earlyWebSocketEvents.forEach(event => {
+                  console.log('🔄 Processing buffered event:', event);
+                  // Re-process the event with the now-ready upload state
+                  if (event.stage === 'started') {
+                    setUploadProgress(event.progress || 0)
+                  } else if (event.stage === 'uploading') {
+                    setUploadProgress(event.progress || 0)
+                  } else if (event.stage === 'completed') {
+                    setTimeout(() => {
+                      setIsUploading(false)
+                      setUploadProgress(0)
+                      setUploadData(null)
+                      sessionStorage.removeItem('productUploadData')
+                      sessionStorage.removeItem('productUploadProgress')
+                      sessionStorage.removeItem('productUploadError')
+                      queryClient.invalidateQueries('adminProducts')
+                      queryClient.refetchQueries('adminProducts')
+                    }, 1500)
+                  } else if (event.stage === 'error') {
+                    setErrorData({
+                      error: event.error || 'Upload failed',
+                      timestamp: Date.now()
+                    })
+                    setShowError(true)
+                    setIsUploading(false)
+                    setUploadProgress(0)
+                    setUploadData(null)
+                    sessionStorage.removeItem('productUploadData')
+                    sessionStorage.removeItem('productUploadProgress')
+                  }
+                });
+                // Clear the buffer
+                setEarlyWebSocketEvents([])
+              }
+            } catch (setStateError) {
+              console.error('❌ Error setting upload data:', setStateError)
+              return
+            }
             
             // Use real progress from API if available, otherwise estimate
             if (progress && parseInt(progress) > 0) {
@@ -205,9 +352,13 @@ const AdminProducts = () => {
             setTimeout(() => {
               if (uploadProgress === 100 && isUploading) {
                 console.log('⏰ Fallback: Clearing stuck progress bar at 100%');
-                setIsUploading(false)
-                setUploadProgress(0)
-                setUploadData(null)
+                try {
+                  setIsUploading(false)
+                  setUploadProgress(0)
+                  setUploadData(null)
+                } catch (clearError) {
+                  console.error('❌ Error clearing upload state:', clearError)
+                }
                 sessionStorage.removeItem('productUploadData')
                 sessionStorage.removeItem('productUploadProgress')
                 sessionStorage.removeItem('productUploadError')
@@ -220,8 +371,12 @@ const AdminProducts = () => {
             // Clear corrupted data
             sessionStorage.removeItem('productUploadData')
             sessionStorage.removeItem('productUploadProgress')
-            setIsUploading(false)
-            setUploadData(null)
+            try {
+              setIsUploading(false)
+              setUploadData(null)
+            } catch (clearError) {
+              console.error('❌ Error clearing state after parse error:', clearError)
+            }
           }
         }
         
@@ -229,6 +384,14 @@ const AdminProducts = () => {
           try {
             const errorInfo = JSON.parse(error)
             console.log('❌ Found upload error:', errorInfo);
+            
+            // Prevent infinite loop with setUploadData error
+            if (errorInfo.error === 'setUploadData is not defined') {
+              console.log('🔄 Clearing recursive setUploadData error');
+              sessionStorage.removeItem('productUploadError')
+              return // Don't display this error to user
+            }
+            
             setErrorData(errorInfo)
             setShowError(true)
             setIsUploading(false)
@@ -640,10 +803,10 @@ const AdminProducts = () => {
                       </div>
                       <div className="flex items-center space-x-4">
                         <p className="text-sm text-blue-200 font-medium">
-                          {uploadProgress < 30 
+                          {uploadProgress < 15 && currentImageIndex === 0
                             ? 'Initializing secure connection and preparing upload...'
-                            : uploadProgress < 80
-                            ? `Processing ${uploadData.imageCount} file${uploadData.imageCount !== 1 ? 's' : ''} with enterprise-grade encryption...`
+                            : uploadProgress < 90
+                            ? `Uploading image ${currentImageIndex} of ${totalImages} with enterprise-grade encryption...`
                             : uploadProgress < 95
                             ? 'Optimizing data and validating integrity...'
                             : 'Finalizing creation and deploying to production...'
