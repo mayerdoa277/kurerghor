@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { 
   ArrowLeft,
   Save,
@@ -9,18 +9,33 @@ import {
   Plus,
   Trash2,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from 'react-query'
 import { adminAPI } from '../../services/api'
+import uploadRecoveryService from '../../services/uploadRecoveryService'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import UploadRetryPopup from '../../components/UploadRetryPopup'
 import toast from 'react-hot-toast'
 
 const AdminProductAdd = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const queryClient = useQueryClient()
   const [isDragging, setIsDragging] = useState(false)
   const [activeSection, setActiveSection] = useState('basic')
+  
+  // Enhanced upload state
+  const [uploadState, setUploadState] = useState({
+    isUploading: false,
+    uploadProgress: 0,
+    uploadId: null,
+    showRetryPopup: false,
+    lastError: null,
+    uploadData: null,
+    isRetrying: false
+  })
   const sectionRefs = {
     basic: useRef(null),
     pricing: useRef(null),
@@ -59,10 +74,6 @@ const AdminProductAdd = () => {
   const [imageSizes, setImageSizes] = useState([]) // Track individual image sizes
   const [totalImageSize, setTotalImageSize] = useState(0) // Track total size in MB
   const [errors, setErrors] = useState({})
-  const [isUploading, setIsUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const [showRetryOption, setShowRetryOption] = useState(false)
-  const [lastFormData, setLastFormData] = useState(null)
   const [tagInput, setTagInput] = useState('')
 
   const { data: categoriesData } = useQuery(
@@ -77,14 +88,9 @@ const AdminProductAdd = () => {
     { staleTime: 5 * 1000 } // Reduced to 5 seconds for more responsive updates
   )
 
-  const categories = Array.isArray(categoriesData?.data) ? categoriesData.data : 
-                  Array.isArray(categoriesData?.data?.data) ? categoriesData.data.data :
-                  Array.isArray(categoriesData?.data?.categories) ? categoriesData.data.categories : []
+  const categories = Array.isArray(categoriesData?.data?.data?.categories) ? categoriesData.data.data.categories : []
 const vendors = Array.isArray(vendorsData?.data?.data?.vendors) ? vendorsData.data.data.vendors : 
-                  Array.isArray(vendorsData?.data?.vendors) ? vendorsData.data.vendors : 
-                  Array.isArray(vendorsData?.data) ? vendorsData.data :
-                  Array.isArray(vendorsData?.vendors) ? vendorsData.vendors :
-                  Array.isArray(vendorsData?.success?.data?.vendors) ? vendorsData.success.data.vendors : []
+               Array.isArray(vendorsData?.success?.data?.vendors) ? vendorsData.success.data.vendors : []
 
 // Refresh categories and vendors when window gets focus (user navigates back to this page)
 useEffect(() => {
@@ -99,102 +105,80 @@ useEffect(() => {
   return () => window.removeEventListener('focus', handleFocus)
 }, [queryClient])
 
+  // Enhanced upload handlers
+  const handleUploadError = (error) => {
+    console.error('❌ Upload error:', error)
+    
+    setUploadState(prev => ({
+      ...prev,
+      showRetryPopup: true,
+      lastError: error,
+      isUploading: false
+    }))
+  }
+
+  const handleCloseRetryPopup = () => {
+    setUploadState(prev => ({
+      ...prev,
+      showRetryPopup: false,
+      lastError: null
+    }))
+  }
+
+  const handleRetryUpload = async () => {
+    if (!uploadState.uploadData) return
+    
+    setUploadState(prev => ({
+      ...prev,
+      isRetrying: true,
+      showRetryPopup: false
+    }))
+    
+    try {
+      await createProductMutation.mutateAsync(uploadState.uploadData)
+    } catch (error) {
+      handleUploadError(error)
+    } finally {
+      setUploadState(prev => ({
+        ...prev,
+        isRetrying: false
+      }))
+    }
+  }
+
+  // Listen for upload progress events
+  useEffect(() => {
+    const handleProgress = (event) => {
+      if (event.detail.uploadId === uploadState.uploadId) {
+        setUploadState(prev => ({
+          ...prev,
+          uploadProgress: event.detail.progress
+        }))
+      }
+    }
+
+    window.addEventListener('productUploadProgress', handleProgress)
+    return () => window.removeEventListener('productUploadProgress', handleProgress)
+  }, [uploadState.uploadId])
+
   const createProductMutation = useMutation(
     adminAPI.createProduct,
     {
-      onMutate: (variables) => {
-        // Generate unique upload ID for tracking
-        const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        
-        // Extract product name and image count for display
-        const productName = variables.get('name') || 'Unknown Product'
-        const imageCount = variables.getAll('images').length
-        
-        // Store comprehensive upload data
-        const uploadData = {
-          uploadId,
-          productName,
-          imageCount,
-          startTime: Date.now(),
-          status: 'started'
-        }
-        
-        // Store data in sessionStorage BEFORE redirect
-        sessionStorage.setItem('productUploadData', JSON.stringify(uploadData))
-        sessionStorage.setItem('productUploadProgress', '5') // Start with 5% progress
-        
-        // Debug logging
-        console.log('🚀 Upload Started - Storing data:', uploadData)
-        console.log('📦 Session Storage after storing:', {
-          data: sessionStorage.getItem('productUploadData'),
-          progress: sessionStorage.getItem('productUploadProgress')
-        })
-        
-        // Listen for upload progress events
-        const handleUploadProgress = (event) => {
-          const { progress } = event.detail
-          sessionStorage.setItem('productUploadProgress', progress.toString())
-          console.log('📊 Progress updated:', progress)
-        }
-        
-        window.addEventListener('productUploadProgress', handleUploadProgress)
-        
-        // Store event listener for cleanup
-        window._uploadProgressListener = handleUploadProgress
-        
-        // Small delay to ensure sessionStorage is set before redirect
-        setTimeout(() => {
-          // Immediately redirect to products page
-          navigate('/admin/products')
-        }, 500) // Increased delay to give frontend more time to set up
-      },
       onSuccess: (data) => {
-        // Clear upload session data
-        sessionStorage.removeItem('productUploadData')
-        sessionStorage.removeItem('productUploadProgress')
-        
-        // Clean up event listener
-        if (window._uploadProgressListener) {
-          window.removeEventListener('productUploadProgress', window._uploadProgressListener)
-          delete window._uploadProgressListener
-        }
-        
-        // Show success notification
-        toast.success('Product created successfully!', {
-          icon: <CheckCircle2 className="w-5 h-5 text-green-500" />,
-          duration: 3000
-        })
-        
-        // Invalidate cache to refresh products list
-        queryClient.invalidateQueries('adminProducts')
-        queryClient.refetchQueries('adminProducts')
+        console.log('✅ Admin product created successfully:', data)
+        toast.success('Product created successfully!')
+        navigate('/admin/products')
       },
       onError: (error) => {
-        // Clean up event listener
-        if (window._uploadProgressListener) {
-          window.removeEventListener('productUploadProgress', window._uploadProgressListener)
-          delete window._uploadProgressListener
-        }
-        
-        // Store error for retry functionality
-        sessionStorage.setItem('productUploadError', JSON.stringify({
-          error: error.message || 'Upload failed',
-          isNetworkError: error.isNetworkError || error.message?.includes('timeout'),
-          timestamp: Date.now()
+        console.error('❌ Admin product creation failed:', error)
+        handleUploadError(error)
+      },
+      onSettled: () => {
+        setUploadState(prev => ({
+          ...prev,
+          isUploading: false,
+          uploadProgress: 0
         }))
-        
-        // Show error notification
-        if (error.isNetworkError || error.message?.includes('timeout')) {
-          toast.error('Upload failed due to network issues. You can retry.', {
-            icon: <AlertCircle className="w-5 h-5 text-red-500" />,
-            duration: 5000
-          })
-        } else {
-          toast.error(error.response?.data?.message || 'Failed to create product', {
-            icon: <AlertCircle className="w-5 h-5 text-red-500" />,
-            duration: 4000
-          })
-        }
       }
     }
   )
@@ -417,10 +401,41 @@ useEffect(() => {
     }
   }, [])
 
-  // Store form data for retry before submission
-  const handleSubmit = (e) => {
+  // Enhanced form submission
+  const handleSubmit = async (e) => {
     e.preventDefault()
     
+    // Check if force fail is enabled (for testing)
+    const forceFail = e.nativeEvent?.shiftKey || false
+    if (forceFail) {
+      console.log('🧪 ADMIN FORCE FAIL MODE - Shift+Click detected')
+    }
+    
+    try {
+      const formDataToSubmit = prepareFormData()
+      const uploadId = uploadService.generateUploadId()
+      
+      setUploadState(prev => ({
+        ...prev,
+        isUploading: true,
+        uploadId,
+        uploadProgress: 0,
+        showRetryPopup: false,
+        lastError: null,
+        uploadData: formDataToSubmit
+      }))
+      
+      // Save form data for recovery before upload
+      uploadRecoveryService.saveUploadData(formDataToSubmit, uploadId)
+      
+      await createProductMutation.mutateAsync(formDataToSubmit, { forceFail })
+    } catch (error) {
+      console.error('❌ Upload submission failed:', error)
+    }
+  }
+
+  // Prepare form data for submission
+  const prepareFormData = () => {
     // Store form data for potential retry
     const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     sessionStorage.setItem(`retry_${uploadId}`, JSON.stringify(formData))
@@ -524,12 +539,12 @@ useEffect(() => {
     createProductMutation.mutate(formDataToSubmit)
   }
 
-  if (createProductMutation.isLoading || isUploading) return <LoadingSpinner />
+  if (uploadState.isUploading) return <LoadingSpinner />
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 relative">
       {/* Upload Progress Overlay */}
-      {isUploading && (
+      {uploadState.isUploading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-2xl p-8 max-w-md mx-4 shadow-2xl border border-gray-200/50">
             <div className="text-center space-y-6">
@@ -539,11 +554,11 @@ useEffect(() => {
                   <div 
                     className="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent border-r-transparent animate-spin"
                     style={{
-                      transform: `rotate(${uploadProgress * 3.6}deg)`
+                      transform: `rotate(${uploadState.uploadProgress * 3.6}deg)`
                     }}
                   ></div>
                   <div className="absolute inset-2 flex items-center justify-center">
-                    <span className="text-sm font-bold text-blue-600">{uploadProgress}%</span>
+                    <span className="text-sm font-bold text-blue-600">{uploadState.uploadProgress}%</span>
                   </div>
                 </div>
               </div>
@@ -551,14 +566,14 @@ useEffect(() => {
               <div className="space-y-2">
                 <h3 className="text-lg font-semibold text-gray-900">Creating Product</h3>
                 <p className="text-sm text-gray-600">
-                  {uploadProgress < 90 ? 'Uploading images and processing data...' : 'Finalizing product creation...'}
+                  {uploadState.uploadProgress < 90 ? 'Uploading images and processing data...' : 'Finalizing product creation...'}
                 </p>
               </div>
               
               <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-300 ease-out"
-                  style={{ width: `${uploadProgress}%` }}
+                  style={{ width: `${uploadState.uploadProgress}%` }}
                 ></div>
               </div>
               
@@ -570,43 +585,6 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Retry Option */}
-      {showRetryOption && !isUploading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-8 max-w-md mx-4 shadow-2xl border border-gray-200/50">
-            <div className="text-center space-y-6">
-              <div className="flex justify-center">
-                <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
-                  <AlertCircle className="w-8 h-8 text-red-600" />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold text-gray-900">Upload Failed</h3>
-                <p className="text-sm text-gray-600">
-                  The product upload failed due to network issues. Your data is saved and you can retry the upload.
-                </p>
-              </div>
-              
-              <div className="flex space-x-3">
-                <button
-                  onClick={handleRetry}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2.5 rounded-xl font-medium hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 flex items-center justify-center space-x-2"
-                >
-                  <Upload className="w-4 h-4" />
-                  <span>Retry Upload</span>
-                </button>
-                <button
-                  onClick={() => setShowRetryOption(false)}
-                  className="flex-1 bg-gray-100 text-gray-700 px-4 py-2.5 rounded-xl font-medium hover:bg-gray-200 transition-all duration-200"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Header */}
       <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 shadow-sm">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
@@ -626,24 +604,6 @@ useEffect(() => {
                 <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full animate-pulse mr-1 sm:mr-2"></div>
                 <span className="text-xs sm:text-sm font-medium text-gray-700">Auto-save</span>
               </div>
-              <button
-                type="submit"
-                form="product-form"
-                disabled={createProductMutation.isLoading}
-                className="group relative px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg sm:rounded-xl shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
-              >
-                <span className="flex items-center space-x-1.5 sm:space-x-2">
-                  <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span className="hidden xs:inline">Create</span>
-                  <span className="xs:hidden">+</span>
-                </span>
-                <div className="absolute inset-0 rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200 blur"></div>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Progress Indicator */}
       <div className="sticky top-14 sm:top-16 z-30 bg-white/60 backdrop-blur-md border-b border-gray-200/30">
         <div className="max-w-7xl mx-auto px-2 sm:px-3 lg:px-8">
@@ -668,6 +628,7 @@ useEffect(() => {
         </div>
       </div>
 
+      <div>
       <form id="product-form" onSubmit={handleSubmit} className="max-w-7xl mx-auto px-2 sm:px-3 lg:px-8 py-3 sm:py-4 lg:py-6 xl:py-8">
         <div className="space-y-3 sm:space-y-4 lg:space-y-6 xl:space-y-8">
           {/* Basic Information */}
@@ -1500,8 +1461,19 @@ useEffect(() => {
             </div>
           </div>
 
-          </div>
       </form>
+      
+      {/* Upload Retry Popup */}
+      <UploadRetryPopup
+        isOpen={uploadState.showRetryPopup}
+        onClose={handleCloseRetryPopup}
+        error={uploadState.lastError}
+        uploadData={uploadState.uploadData}
+        onRetry={handleRetryUpload}
+        uploadProgress={uploadState.uploadProgress}
+        isRetrying={uploadState.isRetrying}
+      />
+      </div>
     </div>
   )
 }

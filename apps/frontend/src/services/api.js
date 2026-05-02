@@ -10,6 +10,9 @@ const api = axios.create({
   withCredentials: true // Important for CORS
 })
 
+// Export api for upload service
+export { api }
+
 // Debug logging
 console.log('🔧 API Configuration:')
 console.log('Base URL:', api.defaults.baseURL)
@@ -191,28 +194,23 @@ export const paymentAPI = {
   verifyPayment: (verificationData) => api.post('/payments/verify', verificationData)
 }
 
+import uploadService from './uploadService.js'
+
 export const vendorAPI = {
   requestVendorAccount: (requestData) => api.post('/vendors/request', requestData),
   getDashboard: () => api.get('/vendors/dashboard'),
   getProducts: (params) => api.get('/vendors/products', { params }),
   getCategories: (params) => api.get('/vendors/categories', { params }),
   createProduct: (productData) => {
-    // Handle FormData separately for file uploads
-    if (productData instanceof FormData) {
-      return api.post('/vendors/products', productData, {
-        headers: {
-          'Content-Type': undefined, // Let browser set it automatically for FormData
-        },
-      })
-    }
-    // For regular JSON data
-    return api.post('/vendors/products', productData)
+    return uploadService.uploadProduct(productData)
   },
   deleteProduct: (productId) => api.delete(`/vendors/products/${productId}`),
   getOrders: (params) => api.get('/vendors/orders', { params }),
   getEarnings: (params) => api.get('/vendors/earnings', { params }),
   updateProfile: (profileData) => api.put('/vendors/profile', profileData)
 }
+
+import uploadService from './uploadService.js'
 
 export const adminAPI = {
   getDashboard: () => api.get('/admin/dashboard'),
@@ -225,25 +223,7 @@ export const adminAPI = {
 
   getProducts: (params) => api.get('/admin/products', { params }),
   createProduct: (productData) => {
-    // Handle FormData separately for file uploads
-    if (productData instanceof FormData) {
-      return api.post('/admin/products', productData, {
-        headers: {
-          'Content-Type': undefined, // Let browser set it automatically for FormData
-        },
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
-          );
-          // Emit upload progress event
-          window.dispatchEvent(new CustomEvent('productUploadProgress', {
-            detail: { progress: percentCompleted }
-          }));
-        }
-      })
-    }
-    // For regular JSON data
-    return api.post('/admin/products', productData)
+    return uploadService.uploadProduct(productData, '/admin/products')
   },
   updateProduct: (id, productData) => api.put(`/admin/products/${id}`, productData),
   deleteProduct: (id) => api.delete(`/admin/products/${id}`),

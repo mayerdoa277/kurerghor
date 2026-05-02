@@ -3,7 +3,11 @@ import User from '../models/User.js';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js';
 import { protect, authorize } from '../middlewares/auth.js';
+import { validate, createProductSchema } from '../utils/validation.js';
 import { deleteCachePattern } from '../config/redis.js';
+import { handleMultipleImageUpload } from '../middlewares/uploadMiddleware.js';
+import { getDefaultUploadService } from '../services/uploadService.js';
+import { emitUploadProgress } from '../sockets/socketHandler.js';
 
 const router = express.Router();
 
@@ -163,6 +167,110 @@ router.get('/products', protect, authorize('vendor'), async (req, res, next) => 
       }
     });
   } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Create vendor product
+// @route   POST /api/v1/vendors/products
+// @access  Private (Vendor)
+router.post('/products', protect, authorize('vendor'), handleMultipleImageUpload, validate(createProductSchema), async (req, res, next) => {
+  try {
+    const productData = {
+      ...req.body,
+      vendor: req.user._id
+    };
+
+    // Handle image uploads with progress tracking
+    if (req.files && req.files.length > 0) {
+      console.log('🚀 Starting vendor image upload process with', req.files.length, 'files');
+      
+      const uploadService = await getDefaultUploadService();
+      console.log('📸 Upload service loaded:', uploadService.constructor.name);
+      
+      const uploadedImages = [];
+      const totalFiles = req.files.length;
+
+      // Upload each image with progress tracking
+      for (let i = 0; i < totalFiles; i++) {
+        const file = req.files[i];
+        console.log(`📤 Processing vendor file ${i + 1}/${totalFiles}:`, file.originalname);
+        
+        // Emit progress for image upload (30-80% range)
+        const progress = 30 + Math.floor((i / totalFiles) * 50);
+        
+        // Emit progress via WebSocket
+        console.log('📡 Emitting vendor upload progress:', progress);
+        const userId = req.body.uploadId || 'user123';
+        emitUploadProgress(userId, {
+          progress,
+          current: i + 1,
+          total: totalFiles,
+          filename: file.originalname,
+          stage: 'uploading'
+        });
+
+        try {
+          console.log('⬆️ Calling vendor uploadService.uploadFile...');
+          const uploadResult = await uploadService.uploadFile(
+            file.buffer,
+            file.originalname,
+            'products'
+          );
+          console.log('✅ Vendor upload successful:', uploadResult);
+          
+          uploadedImages.push({
+            url: uploadResult.url,
+            alt: req.body.imageAlt || productData.name,
+            isMain: uploadedImages.length === 0 // First image is main
+          });
+        } catch (uploadError) {
+          console.error('❌ Vendor upload failed for file:', file.originalname, uploadError);
+          throw uploadError;
+        }
+      }
+
+      productData.images = uploadedImages;
+      console.log('📦 All vendor images uploaded successfully:', uploadedImages.length);
+
+      // Emit progress for processing stage (80-95% range)
+      console.log('🔄 Emitting vendor processing progress...');
+      emitUploadProgress(userId, {
+        progress: 85,
+        stage: 'processing'
+      });
+    }
+
+    // Create product in database
+    console.log('💾 Creating vendor product in database...');
+    const product = await Product.create(productData);
+    console.log('✅ Vendor product created successfully:', product._id);
+    
+    // Clear product cache
+    await deleteCachePattern('products:*');
+
+    // Emit completion (100%)
+    console.log('🎉 Emitting vendor completion progress...');
+    emitUploadProgress(userId, {
+      progress: 100,
+      stage: 'completed',
+      productId: product._id
+    });
+
+    res.status(201).json({
+      success: true,
+      data: product
+    });
+
+  } catch (error) {
+    console.error('❌ Vendor product creation failed:', error);
+    // Emit error if WebSocket available
+    const userId = req.body.uploadId || 'user123';
+    emitUploadProgress(userId, {
+      progress: 0,
+      stage: 'error',
+      error: error.message
+    });
     next(error);
   }
 });
