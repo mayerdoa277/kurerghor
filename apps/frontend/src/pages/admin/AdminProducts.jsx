@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { 
   Search, 
@@ -11,23 +11,49 @@ import {
   AlertCircle,
   Plus,
   Upload,
-  CheckCircle2
+  CheckCircle2,
+  Layers,
+  FileText,
+  BarChart3
 } from 'lucide-react'
 import { useQuery, useQueryClient } from 'react-query'
 import { adminAPI } from '../../services/api'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import Pagination from '../../components/Pagination'
+import UploadProgressBar from '../../components/UploadProgressBar'
 import { useSocket } from '../../contexts/SocketContext'
+
+// Initialize state from sessionStorage to prevent flickering on redirect
+const getInitialUploadState = () => {
+  try {
+    const data = sessionStorage.getItem('productUploadData')
+    const progress = sessionStorage.getItem('productUploadProgress')
+    if (data) {
+      return {
+        isUploading: true,
+        uploadData: JSON.parse(data),
+        uploadProgress: parseInt(progress || '5')
+      }
+    }
+  } catch (e) {
+    console.error('Error reading initial upload state:', e)
+  }
+  return { isUploading: false, uploadData: null, uploadProgress: 0 }
+}
+
+const initialUploadState = getInitialUploadState()
 
 const AdminProducts = () => {
   const navigate = useNavigate()
   const [currentPage, setCurrentPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [vendorFilter, setVendorFilter] = useState('')
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const [isUploading, setIsUploading] = useState(false)
-  const [uploadData, setUploadData] = useState(null)
+  const inputRef = useRef(null)
+  const [uploadProgress, setUploadProgress] = useState(initialUploadState.uploadProgress)
+  const [isUploading, setIsUploading] = useState(initialUploadState.isUploading)
+  const [uploadData, setUploadData] = useState(initialUploadState.uploadData)
   const [showError, setShowError] = useState(false)
   const [errorData, setErrorData] = useState(null)
   const [earlyWebSocketEvents, setEarlyWebSocketEvents] = useState([]) // Buffer for early events
@@ -36,19 +62,50 @@ const AdminProducts = () => {
   const queryClient = useQueryClient()
   const { socket, connected } = useSocket()
 
+  const handleUploadDismiss = () => {
+    setIsUploading(false)
+    setUploadProgress(0)
+    setUploadData(null)
+    sessionStorage.removeItem('productUploadData')
+    sessionStorage.removeItem('productUploadProgress')
+    sessionStorage.removeItem('productUploadError')
+    queryClient.invalidateQueries('adminProducts')
+    queryClient.refetchQueries('adminProducts')
+  }
+
+  // Handle search input change - immediate UI update
+  const handleSearchChange = useCallback((e) => {
+    const value = e.target.value
+    setSearchQuery(value) // Update input immediately
+  }, [])
+
+  // Debounce search query for API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+      setCurrentPage(1) // Reset to first page when searching
+    }, 300) // Proper debounce timing for stability
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // Force focus persistence
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [debouncedSearchQuery])
+
   const { data: productsData, isLoading, error } = useQuery(
-    ['adminProducts', currentPage, searchQuery, statusFilter, vendorFilter],
+    ['adminProducts', currentPage, debouncedSearchQuery, statusFilter, vendorFilter],
     () => adminAPI.getProducts({
       page: currentPage,
-      search: searchQuery,
+      search: debouncedSearchQuery,
       status: statusFilter,
       vendor: vendorFilter
     }),
     { 
-      staleTime: 5 * 1000, // Reduced to 5 seconds for more responsive updates
-      cacheTime: 10 * 60 * 1000, // 10 minutes cache time
-      refetchOnWindowFocus: true,
-      refetchOnMount: true
+      staleTime: 30 * 1000,
+      keepPreviousData: true, // VERY IMPORTANT - prevents UI flicker
+      refetchOnWindowFocus: false
     }
   )
 
@@ -266,11 +323,6 @@ const AdminProducts = () => {
     let interval = null
     let progressInterval = null
     
-    // Clear any existing error data on component mount
-    sessionStorage.removeItem('productUploadData')
-    sessionStorage.removeItem('productUploadProgress')
-    sessionStorage.removeItem('productUploadError')
-    
     const checkUploadProgress = () => {
       try {
         const progress = sessionStorage.getItem('productUploadProgress')
@@ -292,10 +344,14 @@ const AdminProducts = () => {
             const uploadInfo = JSON.parse(data)
             console.log('📦 Found upload data, setting up progress bar:', uploadInfo);
             
-            // Safely set upload data with error handling
+            // Only update state if not already set (prevents flicker on initial load)
             try {
-              setUploadData(uploadInfo)
-              setIsUploading(true)
+              if (!uploadData) {
+                setUploadData(uploadInfo)
+              }
+              if (!isUploading) {
+                setIsUploading(true)
+              }
               
               // Process any buffered WebSocket events
               if (earlyWebSocketEvents.length > 0) {
@@ -473,26 +529,6 @@ const AdminProducts = () => {
     }
   }, [])
 
-  // Clear upload data when component unmounts or on successful load (but not during active uploads)
-  useEffect(() => {
-    if (!isLoading && products.length > 0) {
-      // Only clear upload data if there's no active upload in progress
-      const hasActiveUpload = sessionStorage.getItem('productUploadData') || 
-                           sessionStorage.getItem('productUploadProgress') || 
-                           sessionStorage.getItem('productUploadError');
-      
-      if (!hasActiveUpload) {
-        console.log('🧹 Clearing any lingering upload data...');
-        sessionStorage.removeItem('productUploadData')
-        sessionStorage.removeItem('productUploadProgress')
-        sessionStorage.removeItem('productUploadError')
-        setIsUploading(false)
-        setUploadProgress(0)
-        setUploadData(null)
-      }
-    }
-  }, [isLoading, products.length, isUploading]) // Add isUploading dependency
-
   const handleRetry = () => {
     const storedData = sessionStorage.getItem('productUploadData')
     if (storedData) {
@@ -525,363 +561,22 @@ const AdminProducts = () => {
     }
   }
 
-  if (isLoading) return <LoadingSpinner />
+  // Show loading spinner only if not uploading (preserve progress bar during redirect)
+  if (isLoading && !isUploading) return <LoadingSpinner />
 
   return (
     <div className="container mx-auto px-4 py-8 relative">
-      {/* Enterprise Shimmer Animation */}
-      <style jsx>{`
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-        .animate-shimmer {
-          animation: shimmer 2s infinite;
-        }
-      `}</style>
-      
-      {/* Enterprise Upload Progress Bar */}
+      {/* Upload Progress Bar - sticky at top during upload */}
       {isUploading && uploadData && (
-        <div className="fixed top-0 left-0 right-0 z-[60] border-b border-blue-500/20 shadow-2xl">
-          {/* Ambient Glow Effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-blue-500/5 animate-pulse"></div>
-          
-          <div className="relative w-full px-2 sm:px-3 md:px-4 lg:px-6 py-2 sm:py-3 md:py-4">
-            {/* Mobile Layout - Premium Stacked */}
-            <div className="block sm:hidden space-y-3">
-              {/* Premium Header with Glow */}
-              <div className="flex items-center justify-between bg-gradient-to-r from-slate-800/50 to-blue-800/50 rounded-xl p-3 border border-blue-500/20 shadow-lg">
-                <div className="flex items-center space-x-3">
-                  {/* Advanced Spinner with Glow */}
-                  <div className="relative w-8 h-8">
-                    {/* Outer Glow Ring */}
-                    <div className="absolute inset-0 rounded-full bg-blue-500/20 blur-lg animate-pulse"></div>
-                    {/* Progress Ring */}
-                    <svg className="absolute inset-0 w-8 h-8 transform -rotate-90">
-                      <circle cx="16" cy="16" r="12" stroke="rgba(59, 130, 246, 0.2)" strokeWidth="2" fill="none" />
-                      <circle cx="16" cy="16" r="12" stroke="url(#gradient)" strokeWidth="2" fill="none" 
-                        strokeDasharray={`${2 * Math.PI * 12}`} 
-                        strokeDashoffset={`${2 * Math.PI * 12 * (1 - uploadProgress / 100)}`}
-                        className="transition-all duration-500 ease-out" />
-                      <defs>
-                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#3B82F6" />
-                          <stop offset="50%" stopColor="#8B5CF6" />
-                          <stop offset="100%" stopColor="#3B82F6" />
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                    {/* Center Percentage */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-bold text-white drop-shadow-lg">{uploadProgress}%</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-xs font-bold text-white truncate mb-1 drop-shadow">Creating "{uploadData.productName}"</h3>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
-                      <p className="text-xs text-blue-200 font-medium">
-                        {uploadProgress < 30 
-                          ? 'Initializing secure connection...'
-                          : uploadProgress < 80
-                          ? `Processing ${uploadData.imageCount} file${uploadData.imageCount !== 1 ? 's' : ''}...`
-                          : uploadProgress < 95
-                          ? 'Optimizing data...'
-                          : 'Finalizing creation...'
-                        }
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Status Badge */}
-                <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-400/30 rounded-lg px-3 py-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs font-semibold text-blue-300">
-                      {uploadProgress < 30 
-                        ? 'STARTING'
-                        : uploadProgress < 80
-                        ? 'UPLOADING'
-                        : uploadProgress < 95
-                        ? 'PROCESSING'
-                        : 'FINALIZING'
-                      }
-                    </span>
-                    {uploadProgress === 100 && (
-                      <button
-                        onClick={() => {
-                          console.log('🔘 Manual dismiss clicked (mobile)');
-                          setIsUploading(false)
-                          setUploadProgress(0)
-                          setUploadData(null)
-                          sessionStorage.removeItem('productUploadData')
-                          sessionStorage.removeItem('productUploadProgress')
-                          sessionStorage.removeItem('productUploadError')
-                          queryClient.invalidateQueries('adminProducts')
-                          queryClient.refetchQueries('adminProducts')
-                        }}
-                        className="text-blue-400 hover:text-blue-300 transition-colors"
-                        title="Dismiss progress bar"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-              
-              {/* Compact Progress Bar */}
-              <div className="space-y-2">
-                <div className="relative">
-                  {/* Glow Background */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-lg"></div>
-                  {/* Progress Bar */}
-                  <div className="relative bg-slate-700/50 rounded-full h-2 overflow-hidden border border-blue-500/30 shadow-inner">
-                    <div 
-                      className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 rounded-full transition-all duration-700 ease-out relative shadow-lg shadow-blue-500/50"
-                      style={{ width: `${uploadProgress}%` }}
-                    >
-                      {/* Animated Shimmer */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
-                      {/* Pulsing Overlay */}
-                      <div className="absolute inset-0 bg-white/10 animate-pulse"></div>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-blue-300 font-medium">
-                    {uploadProgress < 30 
-                      ? 'Establishing connection...'
-                      : uploadProgress < 80
-                      ? 'Transferring files...'
-                      : uploadProgress < 95
-                      ? 'Processing data...'
-                      : 'Completing operation...'
-                    }
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-gray-400">
-                      {uploadProgress < 30 
-                        ? `${Math.floor(uploadProgress / 30 * 2)}s remaining`
-                        : uploadProgress < 80
-                        ? `${Math.floor((80 - uploadProgress) / 50 * 4)}s remaining`
-                        : uploadProgress < 95
-                        ? `${Math.floor((95 - uploadProgress) / 15 * 2)}s remaining`
-                        : 'Almost complete...'
-                      }
-                    </span>
-                    {uploadProgress === 100 && (
-                      <button
-                        onClick={() => {
-                          console.log('🔘 Manual dismiss clicked');
-                          setIsUploading(false)
-                          setUploadProgress(0)
-                          setUploadData(null)
-                          sessionStorage.removeItem('productUploadData')
-                          sessionStorage.removeItem('productUploadProgress')
-                          sessionStorage.removeItem('productUploadError')
-                          queryClient.invalidateQueries('adminProducts')
-                          queryClient.refetchQueries('adminProducts')
-                        }}
-                        className="text-blue-400 hover:text-blue-300 transition-colors"
-                        title="Dismiss progress bar"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Tablet Layout - Premium Compact */}
-            <div className="hidden sm:block md:hidden">
-              <div className="bg-gradient-to-r from-slate-800/50 to-blue-800/50 rounded-xl p-4 border border-blue-500/20 shadow-xl">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    {/* Premium Spinner */}
-                    <div className="relative w-9 h-9">
-                      <div className="absolute inset-0 rounded-full bg-blue-500/20 blur-lg animate-pulse"></div>
-                      <svg className="absolute inset-0 w-9 h-9 transform -rotate-90">
-                        <circle cx="18" cy="18" r="14" stroke="rgba(59, 130, 246, 0.2)" strokeWidth="2" fill="none" />
-                        <circle cx="18" cy="18" r="14" stroke="url(#gradient)" strokeWidth="2" fill="none" 
-                          strokeDasharray={`${2 * Math.PI * 14}`} 
-                          strokeDashoffset={`${2 * Math.PI * 14 * (1 - uploadProgress / 100)}`}
-                          className="transition-all duration-500 ease-out" />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-xs font-bold text-white drop-shadow-lg">{uploadProgress}%</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-bold text-white truncate mb-1 drop-shadow">Creating "{uploadData.productName}"</h3>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
-                        <p className="text-xs text-blue-200">
-                          {uploadProgress < 30 
-                            ? 'Initializing secure connection...'
-                            : uploadProgress < 80
-                            ? `Processing ${uploadData.imageCount} file${uploadData.imageCount !== 1 ? 's' : ''}...`
-                            : uploadProgress < 95
-                            ? 'Optimizing data...'
-                            : 'Finalizing creation...'
-                          }
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-3">
-                    <div className="w-36 bg-slate-700/50 rounded-full h-2 overflow-hidden border border-blue-500/30">
-                      <div 
-                        className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 rounded-full transition-all duration-500 ease-out relative shadow-lg shadow-blue-500/50"
-                        style={{ width: `${uploadProgress}%` }}
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-400/30 rounded-lg px-2 py-1">
-                        <span className="text-xs font-semibold text-blue-300">
-                          {uploadProgress < 30 ? 'STARTING' : uploadProgress < 80 ? 'UPLOADING' : uploadProgress < 95 ? 'PROCESSING' : 'FINALIZING'}
-                        </span>
-                      </div>
-                      {uploadProgress === 100 && (
-                        <button
-                          onClick={() => {
-                            console.log('🔘 Manual dismiss clicked (tablet)');
-                            setIsUploading(false)
-                            setUploadProgress(0)
-                            setUploadData(null)
-                            sessionStorage.removeItem('productUploadData')
-                            sessionStorage.removeItem('productUploadProgress')
-                            sessionStorage.removeItem('productUploadError')
-                            queryClient.invalidateQueries('adminProducts')
-                            queryClient.refetchQueries('adminProducts')
-                          }}
-                          className="text-blue-400 hover:text-blue-300 transition-colors text-lg"
-                          title="Dismiss progress bar"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Desktop Layout - Enterprise Full */}
-            <div className="hidden md:block">
-              <div className="bg-gradient-to-r from-slate-800/50 via-blue-800/50 to-slate-800/50 rounded-2xl p-5 border border-blue-500/20 shadow-2xl backdrop-blur-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-6">
-                    {/* Enterprise Spinner */}
-                    <div className="relative w-10 h-10">
-                      <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/30 to-purple-500/30 blur-xl animate-pulse"></div>
-                      <svg className="absolute inset-0 w-10 h-10 transform -rotate-90">
-                        <circle cx="20" cy="20" r="16" stroke="rgba(59, 130, 246, 0.2)" strokeWidth="3" fill="none" />
-                        <circle cx="20" cy="20" r="16" stroke="url(#gradient)" strokeWidth="3" fill="none" 
-                          strokeDasharray={`${2 * Math.PI * 16}`} 
-                          strokeDashoffset={`${2 * Math.PI * 16 * (1 - uploadProgress / 100)}`}
-                          className="transition-all duration-700 ease-out filter drop-shadow-lg" />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-sm font-bold text-white drop-shadow-lg">{uploadProgress}%</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-base font-bold text-white truncate drop-shadow">Creating "{uploadData.productName}"</h3>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-xl shadow-green-400/50"></div>
-                          <span className="text-sm font-semibold text-green-400">ACTIVE</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <p className="text-sm text-blue-200 font-medium">
-                          {uploadProgress < 15 && currentImageIndex === 0
-                            ? 'Initializing secure connection and preparing upload...'
-                            : uploadProgress < 90
-                            ? `Uploading image ${currentImageIndex} of ${totalImages} with enterprise-grade encryption...`
-                            : uploadProgress < 95
-                            ? 'Optimizing data and validating integrity...'
-                            : 'Finalizing creation and deploying to production...'
-                          }
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-6">
-                    <div className="text-right">
-                      <div className="relative w-48 bg-slate-700/50 rounded-full h-2 overflow-hidden border border-blue-500/30 shadow-inner">
-                        <div 
-                          className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 rounded-full transition-all duration-700 ease-out relative shadow-xl shadow-blue-500/50"
-                          style={{ width: `${uploadProgress}%` }}
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer"></div>
-                          <div className="absolute inset-0 bg-white/10 animate-pulse"></div>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between mt-2 text-xs">
-                        <span className="text-blue-300 font-medium">
-                          {uploadProgress < 30 
-                            ? 'Establishing connection...'
-                            : uploadProgress < 80
-                            ? 'Transferring files...'
-                            : uploadProgress < 95
-                            ? 'Processing data...'
-                            : 'Completing operation...'
-                          }
-                        </span>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-gray-400">
-                            {uploadProgress < 30 
-                              ? `${Math.floor(uploadProgress / 30 * 2)}s remaining`
-                              : uploadProgress < 80
-                              ? `${Math.floor((80 - uploadProgress) / 50 * 4)}s remaining`
-                              : uploadProgress < 95
-                              ? `${Math.floor((95 - uploadProgress) / 15 * 2)}s remaining`
-                              : 'Almost complete...'
-                            }
-                          </span>
-                          {uploadProgress === 100 && (
-                            <button
-                              onClick={() => {
-                                console.log('🔘 Manual dismiss clicked (desktop)');
-                                setIsUploading(false)
-                                setUploadProgress(0)
-                                setUploadData(null)
-                                sessionStorage.removeItem('productUploadData')
-                                sessionStorage.removeItem('productUploadProgress')
-                                sessionStorage.removeItem('productUploadError')
-                                queryClient.invalidateQueries('adminProducts')
-                                queryClient.refetchQueries('adminProducts')
-                              }}
-                              className="text-blue-400 hover:text-blue-300 transition-colors text-lg font-bold"
-                              title="Dismiss progress bar"
-                            >
-                              ✕
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-400/30 rounded-xl px-4 py-2 shadow-lg">
-                      <span className="text-sm font-bold text-blue-300">
-                        {uploadProgress < 30 ? 'INITIALIZING' : uploadProgress < 80 ? 'UPLOADING' : uploadProgress < 95 ? 'PROCESSING' : 'FINALIZING'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="sticky top-0 z-50 mb-6 bg-gray-50/80 backdrop-blur-sm py-2 -mx-4 px-4">
+          <UploadProgressBar
+            isUploading={isUploading}
+            uploadProgress={uploadProgress}
+            uploadData={uploadData}
+            onDismiss={handleUploadDismiss}
+            currentImage={currentImageIndex}
+            totalImages={totalImages}
+          />
         </div>
       )}
 
@@ -926,32 +621,112 @@ const AdminProducts = () => {
         </div>
       )}
       <div className="mb-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Manage Products</h1>
-            <p className="text-gray-600">{products.length} products</p>
           </div>
           
           <Link 
             to="/admin/products/add"
-            className="btn-primary flex items-center space-x-2"
+            className="btn-primary flex items-center justify-center space-x-2 w-full lg:w-auto"
           >
             <Plus className="w-4 h-4" />
             <span>Add Product</span>
           </Link>
         </div>
+
+        {/* Enterprise Stats Bar */}
+        <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Total Products Card */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Products</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {pagination?.total?.toLocaleString() || products.length.toLocaleString()}
+                </p>
+              </div>
+              <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                <BarChart3 className="w-5 h-5 text-blue-600" />
+              </div>
+            </div>
+          </div>
+
+          {/* Current Page Products Card */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">On This Page</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{products.length}</p>
+              </div>
+              <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-green-600" />
+              </div>
+            </div>
+          </div>
+
+          {/* Current Page Card */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Current Page</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {pagination?.page || 1} <span className="text-sm font-medium text-gray-400">/ {pagination?.pages || 1}</span>
+                </p>
+              </div>
+              <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
+                <Layers className="w-5 h-5 text-purple-600" />
+              </div>
+            </div>
+          </div>
+
+          {/* Per Page Card */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Per Page</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{pagination?.limit || products.length}</p>
+              </div>
+              <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">
+                <Package className="w-5 h-5 text-orange-600" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Showing Range Info */}
+        {pagination && (
+          <div className="mt-4 flex items-center justify-between text-sm">
+            <p className="text-gray-600">
+              Showing <span className="font-semibold text-gray-900">
+                {((pagination.page - 1) * pagination.limit) + 1}
+              </span> to <span className="font-semibold text-gray-900">
+                {Math.min(pagination.page * pagination.limit, pagination.total)}
+              </span> of <span className="font-semibold text-gray-900">
+                {pagination.total.toLocaleString()}
+              </span> products
+            </p>
+            <p className="text-gray-500">
+              Page {pagination.page} of {pagination.pages}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Filters */}
       <div className="bg-white rounded-lg p-6 border border-gray-200 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="relative">
+            <Search className="search-icon" />
             <input
+              ref={inputRef}
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchChange}
               placeholder="Search products..."
               className="search-input w-full"
+              autoComplete="off"
+              spellCheck="false"
             />
           </div>
           

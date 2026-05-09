@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from 'react-query'
+import { HelmetProvider } from 'react-helmet-async'
 import { Toaster } from 'react-hot-toast'
 import App from './App.jsx'
 import './index.css'
@@ -24,8 +25,9 @@ const queryClient = new QueryClient({
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
-        <App />
+      <HelmetProvider>
+        <BrowserRouter future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
+          <App />
         <Toaster
           position="top-right"
           toastOptions={{
@@ -50,7 +52,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             },
           }}
         />
-      </BrowserRouter>
+        </BrowserRouter>
+      </HelmetProvider>
     </QueryClientProvider>
   </React.StrictMode>,
 )

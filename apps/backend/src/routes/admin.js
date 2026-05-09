@@ -593,9 +593,13 @@ router.get('/products', async (req, res, next) => {
     if (category) query.category = category;
 
     if (search) {
-
-      query.$text = { $search: search };
-
+      // Use regex search for partial matching (more reliable than $text)
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { brand: { $regex: search, $options: 'i' } },
+        { tags: { $in: [new RegExp(search, 'i')] } }
+      ];
     }
 
     console.log('🔍 Admin products query:', query);
@@ -654,7 +658,33 @@ router.get('/products', async (req, res, next) => {
 
 });
 
+// @desc    Get single product by ID (admin)
+// @route   GET /api/v1/admin/products/:id
+// @access  Private (Admin)
+router.get('/products/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
 
+    const product = await Product.findById(id)
+      .populate('vendor', 'name email storeName')
+      .populate('category', 'name slug');
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        error: 'Product not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: product
+    });
+
+  } catch (error) {
+    next(error);
+  }
+});
 
 // @desc    Update product status (admin)
 
@@ -730,10 +760,175 @@ router.put('/products/:productId/status', async (req, res, next) => {
 
 
 
+// @desc    Update product (admin)
+// @route   PUT /api/v1/admin/products/:id
+// @access  Private (Admin)
+router.put('/products/:id', handleMultipleImageUpload, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Find existing product
+    let product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        error: 'Product not found'
+      });
+    }
+
+    const updateData = { ...req.body };
+
+    // Parse JSON fields
+    if (updateData.dimensions) {
+      try {
+        updateData.dimensions = JSON.parse(updateData.dimensions);
+      } catch (e) {
+        console.error('Error parsing dimensions:', e);
+      }
+    }
+
+    if (updateData.inventory) {
+      try {
+        updateData.inventory = JSON.parse(updateData.inventory);
+      } catch (e) {
+        console.error('Error parsing inventory:', e);
+      }
+    }
+
+    if (updateData.seo) {
+      try {
+        updateData.seo = JSON.parse(updateData.seo);
+      } catch (e) {
+        console.error('Error parsing seo:', e);
+      }
+    }
+
+    if (updateData.weight) {
+      try {
+        updateData.weight = JSON.parse(updateData.weight);
+      } catch (e) {
+        console.error('Error parsing weight:', e);
+      }
+    }
+
+    if (updateData.shipping) {
+      try {
+        updateData.shipping = JSON.parse(updateData.shipping);
+      } catch (e) {
+        console.error('Error parsing shipping:', e);
+      }
+    }
+
+    if (updateData.tax) {
+      try {
+        updateData.tax = JSON.parse(updateData.tax);
+      } catch (e) {
+        console.error('Error parsing tax:', e);
+      }
+    }
+
+    if (updateData.tags) {
+      try {
+        updateData.tags = JSON.parse(updateData.tags);
+      } catch (e) {
+        console.error('Error parsing tags:', e);
+      }
+    }
+
+    // Handle existing images
+    let existingImages = [];
+    if (updateData.existingImages) {
+      try {
+        existingImages = JSON.parse(updateData.existingImages);
+        delete updateData.existingImages;
+      } catch (e) {
+        console.error('Error parsing existingImages:', e);
+      }
+    }
+
+    // Handle new image uploads
+    if (req.files && req.files.length > 0) {
+      const uploadService = await getDefaultUploadService();
+      const uploadedImages = [];
+
+      for (const file of req.files) {
+        try {
+          const uploadResult = await uploadService.uploadFile(
+            file.buffer,
+            file.originalname,
+            'products'
+          );
+
+          uploadedImages.push({
+            url: uploadResult.url,
+            publicId: uploadResult.publicId,
+            altText: updateData.name || file.originalname,
+            isMain: false
+          });
+        } catch (uploadError) {
+          console.error(`Error uploading image ${file.originalname}:`, uploadError);
+        }
+      }
+
+      // Combine existing and new images
+      updateData.images = [...existingImages, ...uploadedImages];
+    } else if (existingImages.length > 0) {
+      updateData.images = existingImages;
+    }
+
+    // Remove fields that shouldn't be updated directly
+    delete updateData._id;
+    delete updateData.createdAt;
+    delete updateData.updatedAt;
+    delete updateData.soldCount;
+    delete updateData.viewCount;
+    delete updateData.wishlistCount;
+    delete updateData.ratings;
+    delete updateData.reviews;
+
+    // Update product
+    product = await Product.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    // Clear cache
+    await deleteCachePattern('products:*');
+
+    res.json({
+      success: true,
+      data: product
+    });
+
+  } catch (error) {
+    console.error('Product update error:', error);
+
+    // Handle Mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors
+      });
+    }
+
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      return res.status(400).json({
+        success: false,
+        error: `${field} already exists`
+      });
+    }
+
+    next(error);
+  }
+});
+
 // @desc    Get all orders (admin view)
-
 // @route   GET /api/v1/admin/orders
-
 // @access  Private (Admin)
 
 router.get('/orders', async (req, res, next) => {
@@ -824,7 +1019,7 @@ router.get('/orders', async (req, res, next) => {
 
 
 
-// @desc    Get all categories
+// @desc    Get all categories (with search & pagination)
 
 // @route   GET /api/v1/admin/categories
 
@@ -832,13 +1027,54 @@ router.get('/orders', async (req, res, next) => {
 
 router.get('/categories', async (req, res, next) => {
   try {
-    const categories = await Category.find({ isActive: true })
+    console.log('🔍 Admin categories query params:', req.query);
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const { status, search } = req.query;
+    const query = {};
+
+    // Status filter
+    if (status) {
+      query.status = status;
+    } else {
+      query.isActive = true;
+    }
+
+    // Search by name or description
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { slug: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    console.log('🔍 Admin categories query:', query);
+
+    const categories = await Category.find(query)
       .populate('parent', 'name')
-      .sort({ level: 1, sortOrder: 1, name: 1 });
+      .sort({ level: 1, sortOrder: 1, name: 1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Category.countDocuments(query);
+
+    console.log('🔍 Found categories:', categories.length, 'of', total);
 
     res.json({
       success: true,
-      data: categories
+      data: {
+        categories,
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      }
     });
 
   } catch (error) {
@@ -2225,9 +2461,14 @@ router.patch('/vendors/:id/toggle-status', async (req, res, next) => {
 // @route   POST /api/v1/admin/products
 // @access  Private (Admin)
 router.post('/products', protect, authorize('admin'), handleMultipleImageUpload, validate(createProductSchema), async (req, res, next) => {
-  // Generate unique upload ID for progress tracking (moved outside try block)
-  const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-  
+  // Debug: Log the uploadId from request
+  console.log('🔍 DEBUG - req.body.uploadId:', req.body.uploadId);
+  console.log('🔍 DEBUG - req.body keys:', Object.keys(req.body));
+
+  // Use upload ID from request for progress tracking, or generate one
+  const uploadId = req.body.uploadId || `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  console.log('🔍 DEBUG - Final uploadId:', uploadId);
+
   try {
     // Start upload progress tracking
     const userId = 'user123'; // Use the same user ID as frontend WebSocket connection
@@ -2246,10 +2487,74 @@ router.post('/products', protect, authorize('admin'), handleMultipleImageUpload,
       productName: req.body.name || 'Unknown Product'
     })
 
+    // Parse JSON fields from FormData
     const productData = {
       ...req.body,
       vendor: req.user._id,
       uploadId
+    }
+
+    // Parse inventory if sent as JSON string
+    if (productData.inventory && typeof productData.inventory === 'string') {
+      try {
+        productData.inventory = JSON.parse(productData.inventory);
+      } catch (e) {
+        console.error('Error parsing inventory:', e);
+      }
+    }
+
+    // Parse SEO if sent as JSON string
+    if (productData.seo && typeof productData.seo === 'string') {
+      try {
+        productData.seo = JSON.parse(productData.seo);
+      } catch (e) {
+        console.error('Error parsing seo:', e);
+      }
+    }
+
+    // Parse weight if sent as JSON string
+    if (productData.weight && typeof productData.weight === 'string') {
+      try {
+        productData.weight = JSON.parse(productData.weight);
+      } catch (e) {
+        console.error('Error parsing weight:', e);
+      }
+    }
+
+    // Parse shipping if sent as JSON string
+    if (productData.shipping && typeof productData.shipping === 'string') {
+      try {
+        productData.shipping = JSON.parse(productData.shipping);
+      } catch (e) {
+        console.error('Error parsing shipping:', e);
+      }
+    }
+
+    // Parse tax if sent as JSON string
+    if (productData.tax && typeof productData.tax === 'string') {
+      try {
+        productData.tax = JSON.parse(productData.tax);
+      } catch (e) {
+        console.error('Error parsing tax:', e);
+      }
+    }
+
+    // Parse dimensions if sent as JSON string
+    if (productData.dimensions && typeof productData.dimensions === 'string') {
+      try {
+        productData.dimensions = JSON.parse(productData.dimensions);
+      } catch (e) {
+        console.error('Error parsing dimensions:', e);
+      }
+    }
+
+    // Parse tags if sent as JSON string
+    if (productData.tags && typeof productData.tags === 'string') {
+      try {
+        productData.tags = JSON.parse(productData.tags);
+      } catch (e) {
+        console.error('Error parsing tags:', e);
+      }
     }
 
     // Process images with progress updates

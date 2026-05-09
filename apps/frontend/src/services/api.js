@@ -1,12 +1,10 @@
 import axios from 'axios'
+import uploadService from './uploadService.js'
 
 // Create axios instance
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1',
   timeout: 60000, // Extended to 60s for large file uploads
-  headers: {
-    'Content-Type': 'application/json'
-  },
   withCredentials: true // Important for CORS
 })
 
@@ -28,8 +26,29 @@ api.interceptors.request.use(
       baseURL: config.baseURL,
       fullURL: `${config.baseURL}${config.url}`,
       headers: config.headers,
+      dataType: config.data instanceof FormData ? 'FormData' : typeof config.data,
       origin: window.location.origin
     })
+
+    // Debug FormData contents
+    if (config.data instanceof FormData) {
+      console.log('🔍 DEBUG - FormData contents:')
+      for (let [key, value] of config.data.entries()) {
+        if (value instanceof File) {
+          console.log(`  ${key}: File(${value.name}, ${value.size} bytes)`)
+        } else {
+          console.log(`  ${key}: ${value}`)
+        }
+      }
+    }
+
+    // Set Content-Type based on data type
+    if (config.data instanceof FormData) {
+      // Let axios set Content-Type for FormData (multipart/form-data)
+      delete config.headers['Content-Type']
+    } else if (config.data && typeof config.data === 'object') {
+      config.headers['Content-Type'] = 'application/json'
+    }
 
     // Add auth token if available
     const token = localStorage.getItem('auth-storage')
@@ -194,8 +213,6 @@ export const paymentAPI = {
   verifyPayment: (verificationData) => api.post('/payments/verify', verificationData)
 }
 
-import uploadService from './uploadService.js'
-
 export const vendorAPI = {
   requestVendorAccount: (requestData) => api.post('/vendors/request', requestData),
   getDashboard: () => api.get('/vendors/dashboard'),
@@ -210,8 +227,6 @@ export const vendorAPI = {
   updateProfile: (profileData) => api.put('/vendors/profile', profileData)
 }
 
-import uploadService from './uploadService.js'
-
 export const adminAPI = {
   getDashboard: () => api.get('/admin/dashboard'),
   getUsers: (params) => api.get('/admin/users', { params }),
@@ -222,6 +237,7 @@ export const adminAPI = {
   updateUserStatus: (userId, statusData) => api.put(`/admin/users/${userId}/status`, statusData),
 
   getProducts: (params) => api.get('/admin/products', { params }),
+  getProduct: (id) => api.get(`/admin/products/${id}`),
   createProduct: (productData) => {
     return uploadService.uploadProduct(productData, '/admin/products')
   },

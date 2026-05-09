@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { 
   Search, 
@@ -31,21 +31,57 @@ import toast from 'react-hot-toast'
 const AdminCategories = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [selectedCategories, setSelectedCategories] = useState([])
   const [viewMode, setViewMode] = useState('grid') // grid or list
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const inputRef = useRef(null)
 
   const queryClient = useQueryClient()
 
+  // Handle search input change - immediate UI update
+  const handleSearchChange = useCallback((e) => {
+    const value = e.target.value
+    setSearchQuery(value) // Update input immediately
+  }, [])
+
+  // Debounce search query for API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+      setCurrentPage(1) // Reset to first page when searching
+    }, 300) // Proper debounce timing for stability
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // Force focus persistence
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [debouncedSearchQuery])
+
   const { data: categoriesData, isLoading, refetch } = useQuery(
-    ['adminCategories', currentPage, searchQuery, statusFilter],
-    () => adminAPI.getCategories(),
-    { staleTime: 30 * 1000 }
+    ['adminCategories', currentPage, debouncedSearchQuery, statusFilter],
+    () => adminAPI.getCategories({
+      page: currentPage,
+      search: debouncedSearchQuery,
+      status: statusFilter
+    }),
+    { 
+      staleTime: 30 * 1000,
+      keepPreviousData: true, // VERY IMPORTANT - prevents UI flicker
+      refetchOnWindowFocus: false
+    }
   )
 
-  const categories = Array.isArray(categoriesData?.data?.data) ? categoriesData.data.data : []
-  const pagination = categoriesData?.data?.pagination
+  // Handle the nested response structure: response.data.data.categories
+  const categories = categoriesData?.data?.data?.categories || 
+                     categoriesData?.data?.categories || 
+                     categoriesData?.data?.data || 
+                     []
+  const pagination = categoriesData?.data?.data?.pagination || 
+                     categoriesData?.data?.pagination
 
   const statusOptions = [
     { value: '', label: 'All Status' },
@@ -146,7 +182,7 @@ const AdminCategories = () => {
 
   // Calculate stats
   const stats = {
-    total: categories.length,
+    total: pagination?.total || categories.length,
     active: categories.filter(cat => cat.status === 'active').length,
     inactive: categories.filter(cat => cat.status === 'inactive').length,
     withProducts: categories.filter(cat => cat.productCount > 0).length
@@ -172,7 +208,7 @@ const AdminCategories = () => {
             <div className="flex items-center space-x-3">
               <div className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium flex items-center space-x-1">
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                <span>{categories.length} Categories</span>
+                <span>{stats.total} Categories</span>
               </div>
             </div>
           </div>
@@ -242,13 +278,16 @@ const AdminCategories = () => {
             <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 flex-1">
               {/* Search */}
               <div className="relative flex-1 sm:max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Search className="search-icon" />
                 <input
+                  ref={inputRef}
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={handleSearchChange}
                   placeholder="Search categories..."
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-400"
+                  className="search-input w-full"
+                  autoComplete="off"
+                  spellCheck="false"
                 />
               </div>
 
@@ -358,7 +397,7 @@ const AdminCategories = () => {
                   </button>
                   <span className="text-gray-400">|</span>
                   <span className="text-sm text-gray-600">
-                    Showing {categories.length} categories
+                    Showing {((pagination?.page || 1) - 1) * (pagination?.limit || categories.length) + 1} - {Math.min((pagination?.page || 1) * (pagination?.limit || categories.length), pagination?.total || categories.length)} of {pagination?.total || categories.length} categories
                   </span>
                 </div>
                 

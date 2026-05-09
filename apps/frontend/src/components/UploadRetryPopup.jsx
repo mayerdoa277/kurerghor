@@ -16,7 +16,9 @@ const UploadRetryPopup = ({
   const [errorDetails, setErrorDetails] = useState({
     type: 'unknown',
     message: '',
-    recoverable: true
+    recoverable: true,
+    icon: AlertTriangle,
+    color: 'text-gray-500'
   })
 
   useEffect(() => {

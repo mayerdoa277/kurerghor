@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { 
   ShoppingCart, 
   Heart, 
@@ -165,8 +166,38 @@ const ProductDetailPage = () => {
   const finalPrice = calculateFinalPrice()
   const discount = calculateDiscount()
 
+  // SEO meta data
+  const seoTitle = productData.seo?.title || productData.name
+  const seoDescription = productData.seo?.description || productData.description?.substring(0, 160) || productData.name
+  const seoKeywords = productData.seo?.keywords?.join(', ') || productData.tags?.join(', ') || ''
+  const productImage = productData.images?.[0]?.url || ''
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <>
+      <Helmet>
+        <title>{seoTitle}</title>
+        <meta name="description" content={seoDescription} />
+        <meta name="keywords" content={seoKeywords} />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="product" />
+        <meta property="og:title" content={seoTitle} />
+        <meta property="og:description" content={seoDescription} />
+        {productImage && <meta property="og:image" content={productImage} />}
+        <meta property="product:price:amount" content={String(finalPrice)} />
+        <meta property="product:price:currency" content={import.meta.env.VITE_CURRENCY || 'BDT'} />
+        
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={seoTitle} />
+        <meta name="twitter:description" content={seoDescription} />
+        {productImage && <meta name="twitter:image" content={productImage} />}
+        
+        {/* Canonical URL */}
+        <link rel="canonical" href={`${window.location.origin}/products/${slug}`} />
+      </Helmet>
+
+      <div className="container mx-auto px-4 py-8">
       {/* Breadcrumb */}
       <nav className="breadcrumb mb-8">
         <Link to="/" className="breadcrumb-item">Home</Link>
@@ -488,6 +519,7 @@ const ProductDetailPage = () => {
         </div>
       </div>
     </div>
+    </>
   )
 }
 

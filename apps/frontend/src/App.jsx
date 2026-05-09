@@ -48,6 +48,7 @@ import AdminUsers from './pages/admin/AdminUsers'
 import AdminUserDetail from './pages/admin/AdminUserDetail'
 import AdminProducts from './pages/admin/AdminProducts'
 import AdminProductAdd from './pages/admin/AdminProductAdd'
+import AdminProductEdit from './pages/admin/AdminProductEdit'
 import AdminOrders from './pages/admin/AdminOrders'
 import AdminVendors from './pages/admin/AdminVendors'
 import AdminCategories from './pages/admin/AdminCategories'
@@ -128,6 +129,7 @@ function App() {
           <Route path="vendors" element={<AdminVendors />} />
           <Route path="products" element={<AdminProducts />} />
           <Route path="products/add" element={<AdminProductAdd />} />
+          <Route path="products/:id/edit" element={<AdminProductEdit />} />
           <Route path="orders" element={<AdminOrders />} />
           <Route path="categories" element={<AdminCategories />} />
           <Route path="categories/new" element={<AdminCategoryNew />} />

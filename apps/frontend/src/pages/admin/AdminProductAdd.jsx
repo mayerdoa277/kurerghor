@@ -17,12 +17,15 @@ import { adminAPI } from '../../services/api'
 import uploadRecoveryService from '../../services/uploadRecoveryService'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import UploadRetryPopup from '../../components/UploadRetryPopup'
+import UploadProgressBar from '../../components/UploadProgressBar'
 import toast from 'react-hot-toast'
+import { useSocket } from '../../contexts/SocketContext'
 
 const AdminProductAdd = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
+  const { socket, connected } = useSocket()
   const [isDragging, setIsDragging] = useState(false)
   const [activeSection, setActiveSection] = useState('basic')
   
@@ -34,6 +37,7 @@ const AdminProductAdd = () => {
     showRetryPopup: false,
     lastError: null,
     uploadData: null,
+    uploadMeta: null,
     isRetrying: false
   })
   const sectionRefs = {
@@ -63,12 +67,18 @@ const AdminProductAdd = () => {
     tags: '',
     seoTitle: '',
     seoDescription: '',
+    seoKeywords: '',
     images: [],
+    weight: '',
     dimensions: {
       length: '',
       width: '',
       height: ''
-    }
+    },
+    freeShipping: false,
+    shippingCost: '',
+    taxable: true,
+    taxRate: ''
   })
   const [previewImages, setPreviewImages] = useState([])
   const [imageSizes, setImageSizes] = useState([]) // Track individual image sizes
@@ -79,18 +89,30 @@ const AdminProductAdd = () => {
   const { data: categoriesData } = useQuery(
     'adminCategoriesForProduct',
     () => adminAPI.getCategories({ page: 1, limit: 100 }),
-    { staleTime: 5 * 1000 } // Reduced to 5 seconds for more responsive updates
+    { 
+      staleTime: 30 * 1000, // Cache for 30 seconds
+      refetchOnWindowFocus: true // Refresh when user returns to page
+    }
   )
 
   const { data: vendorsData } = useQuery(
     'adminVendorsForProduct',
     () => adminAPI.getVendors({ page: 1, limit: 100 }),
-    { staleTime: 5 * 1000 } // Reduced to 5 seconds for more responsive updates
+    { 
+      staleTime: 30 * 1000,
+      refetchOnWindowFocus: true
+    }
   )
 
-  const categories = Array.isArray(categoriesData?.data?.data?.categories) ? categoriesData.data.data.categories : []
-const vendors = Array.isArray(vendorsData?.data?.data?.vendors) ? vendorsData.data.data.vendors : 
-               Array.isArray(vendorsData?.success?.data?.vendors) ? vendorsData.success.data.vendors : []
+  // Handle the nested response structure
+  const categories = categoriesData?.data?.data?.categories || 
+                     categoriesData?.data?.categories || 
+                     categoriesData?.data?.data || 
+                     []
+  const vendors = vendorsData?.data?.vendors || 
+                  vendorsData?.data?.data?.vendors || 
+                  vendorsData?.success?.data?.vendors || 
+                  []
 
 // Refresh categories and vendors when window gets focus (user navigates back to this page)
 useEffect(() => {
@@ -146,20 +168,35 @@ useEffect(() => {
     }
   }
 
-  // Listen for upload progress events
+  // Listen for upload progress events from WebSocket
   useEffect(() => {
+    if (!socket || !connected) return
+
     const handleProgress = (event) => {
-      if (event.detail.uploadId === uploadState.uploadId) {
+      console.log('📈 Received WebSocket progress:', event)
+      
+      // Check if this progress event matches our current upload
+      if (event.uploadId === uploadState.uploadId) {
         setUploadState(prev => ({
           ...prev,
-          uploadProgress: event.detail.progress
+          uploadProgress: event.progress
         }))
+        
+        console.log(`📊 Updated progress for upload ${event.uploadId}: ${event.progress}%`)
+      } else {
+        console.log(`📊 Ignoring progress for different upload: ${event.uploadId} (current: ${uploadState.uploadId})`)
       }
     }
 
-    window.addEventListener('productUploadProgress', handleProgress)
-    return () => window.removeEventListener('productUploadProgress', handleProgress)
-  }, [uploadState.uploadId])
+    socket.on('upload:progress', handleProgress)
+    
+    console.log('🎧 Listening for WebSocket upload progress events')
+    
+    return () => {
+      socket.off('upload:progress', handleProgress)
+      console.log('🔇 Stopped listening for WebSocket upload progress events')
+    }
+  }, [socket, connected, uploadState.uploadId])
 
   const createProductMutation = useMutation(
     adminAPI.createProduct,
@@ -167,18 +204,20 @@ useEffect(() => {
       onSuccess: (data) => {
         console.log('✅ Admin product created successfully:', data)
         toast.success('Product created successfully!')
-        navigate('/admin/products')
+        // Don't navigate here - already redirected before upload started
       },
       onError: (error) => {
         console.error('❌ Admin product creation failed:', error)
-        handleUploadError(error)
+        // Store error in sessionStorage for products page to display
+        sessionStorage.setItem('productUploadError', JSON.stringify({
+          error: error.message || 'Upload failed',
+          isNetworkError: !error.response,
+          timestamp: Date.now()
+        }))
       },
       onSettled: () => {
-        setUploadState(prev => ({
-          ...prev,
-          isUploading: false,
-          uploadProgress: 0
-        }))
+        // Upload complete - progress bar will auto-dismiss on products page
+        console.log('✅ Upload settled')
       }
     }
   )
@@ -402,7 +441,7 @@ useEffect(() => {
   }, [])
 
   // Enhanced form submission
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
     
     // Check if force fail is enabled (for testing)
@@ -411,33 +450,51 @@ useEffect(() => {
       console.log('🧪 ADMIN FORCE FAIL MODE - Shift+Click detected')
     }
     
-    try {
-      const formDataToSubmit = prepareFormData()
-      const uploadId = uploadService.generateUploadId()
-      
-      setUploadState(prev => ({
-        ...prev,
-        isUploading: true,
-        uploadId,
-        uploadProgress: 0,
-        showRetryPopup: false,
-        lastError: null,
-        uploadData: formDataToSubmit
-      }))
-      
-      // Save form data for recovery before upload
-      uploadRecoveryService.saveUploadData(formDataToSubmit, uploadId)
-      
-      await createProductMutation.mutateAsync(formDataToSubmit, { forceFail })
-    } catch (error) {
-      console.error('❌ Upload submission failed:', error)
+    // Generate a single uploadId for the entire process
+    const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    console.log('🚀 Starting upload with ID:', uploadId)
+    
+    const formDataToSubmit = prepareFormData(uploadId)
+    
+    setUploadState(prev => ({
+      ...prev,
+      isUploading: true,
+      uploadId,
+      uploadProgress: 0,
+      showRetryPopup: false,
+      lastError: null,
+      uploadData: formDataToSubmit,
+      uploadMeta: {
+        productName: formData.name || 'New product',
+        imageCount: formData.images.length || 0
+      }
+    }))
+    
+    // Save form data for recovery before upload
+    uploadRecoveryService.saveUploadData(formDataToSubmit, uploadId)
+    
+    // Store upload data for progress bar on products page
+    const uploadInfo = {
+      uploadId: uploadId,
+      productName: formData.name || 'New product',
+      imageCount: formData.images.length || 0,
+      startTime: Date.now(),
+      status: 'started'
     }
+    sessionStorage.setItem('productUploadData', JSON.stringify(uploadInfo))
+    sessionStorage.setItem('productUploadProgress', '5')
+    
+    // Redirect to products page immediately to show progress bar there
+    navigate('/admin/products')
+    
+    // Fire upload in background (don't await - let WebSocket handle progress)
+    createProductMutation.mutate(formDataToSubmit, { forceFail })
   }
 
   // Prepare form data for submission
-  const prepareFormData = () => {
+  const prepareFormData = (uploadId) => {
     // Store form data for potential retry
-    const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    console.log('🔍 DEBUG - Frontend using uploadId:', uploadId)
     sessionStorage.setItem(`retry_${uploadId}`, JSON.stringify(formData))
     if (previewImages.length > 0) {
       sessionStorage.setItem(`previews_${uploadId}`, JSON.stringify(previewImages))
@@ -472,6 +529,7 @@ useEffect(() => {
     
     // Add uploadId for WebSocket room targeting
     formDataToSubmit.append('uploadId', uploadId)
+    console.log('🔍 DEBUG - Frontend appending uploadId to FormData:', uploadId)
     
     // Add all basic fields 
     Object.keys(formData).forEach(key => {
@@ -506,11 +564,11 @@ useEffect(() => {
         formDataToSubmit.append('costPrice', String(formData[key]))
       } else if (key === 'price') {
         formDataToSubmit.append('price', String(formData[key]))
-      } else if (key !== 'images' && key !== 'quantity' && key !== 'trackQuantity' && key !== 'allowBackorder' && key !== 'seoTitle' && key !== 'seoDescription') {
+      } else if (key !== 'images' && key !== 'quantity' && key !== 'trackQuantity' && key !== 'allowBackorder' && key !== 'seoTitle' && key !== 'seoDescription' && key !== 'seoKeywords' && key !== 'category') {
         // Use the unique slug for the slug field
         if (key === 'slug') {
           formDataToSubmit.append(key, finalSlug)
-        } else {
+        } else if (formData[key] !== '' && formData[key] !== null && formData[key] !== undefined) {
           formDataToSubmit.append(key, formData[key])
         }
       }
@@ -523,67 +581,61 @@ useEffect(() => {
       allowBackorder: formData.allowBackorder
     }))
 
-    // Add SEO object if fields are provided
-    if (formData.seoTitle || formData.seoDescription) {
-      formDataToSubmit.append('seo', JSON.stringify({
-        title: formData.seoTitle || '',
-        description: formData.seoDescription || ''
+    // Add SEO object with keywords
+    formDataToSubmit.append('seo', JSON.stringify({
+      title: formData.seoTitle || '',
+      description: formData.seoDescription || '',
+      keywords: formData.seoKeywords ? formData.seoKeywords.split(',').map(k => k.trim()).filter(k => k) : []
+    }))
+
+    // Add weight object
+    if (formData.weight) {
+      formDataToSubmit.append('weight', JSON.stringify({
+        value: parseFloat(formData.weight) || 0,
+        unit: 'kg'
       }))
     }
+
+    // Add shipping object
+    formDataToSubmit.append('shipping', JSON.stringify({
+      freeShipping: formData.freeShipping,
+      shippingCost: parseFloat(formData.shippingCost) || 0
+    }))
+
+    // Add tax object
+    formDataToSubmit.append('tax', JSON.stringify({
+      taxable: formData.taxable,
+      taxRate: parseFloat(formData.taxRate) || 0
+    }))
 
     // Add images
     formData.images.forEach((image, index) => {
       formDataToSubmit.append(`images`, image)
     })
 
-    createProductMutation.mutate(formDataToSubmit)
+    return formDataToSubmit
   }
-
-  if (uploadState.isUploading) return <LoadingSpinner />
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 relative">
       {/* Upload Progress Overlay */}
-      {uploadState.isUploading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-8 max-w-md mx-4 shadow-2xl border border-gray-200/50">
-            <div className="text-center space-y-6">
-              <div className="flex justify-center">
-                <div className="relative w-16 h-16">
-                  <div className="absolute inset-0 rounded-full border-4 border-blue-200"></div>
-                  <div 
-                    className="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent border-r-transparent animate-spin"
-                    style={{
-                      transform: `rotate(${uploadState.uploadProgress * 3.6}deg)`
-                    }}
-                  ></div>
-                  <div className="absolute inset-2 flex items-center justify-center">
-                    <span className="text-sm font-bold text-blue-600">{uploadState.uploadProgress}%</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold text-gray-900">Creating Product</h3>
-                <p className="text-sm text-gray-600">
-                  {uploadState.uploadProgress < 90 ? 'Uploading images and processing data...' : 'Finalizing product creation...'}
-                </p>
-              </div>
-              
-              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-300 ease-out"
-                  style={{ width: `${uploadState.uploadProgress}%` }}
-                ></div>
-              </div>
-              
-              <div className="text-xs text-gray-500">
-                Please don't close this window while uploading...
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <UploadProgressBar
+        isUploading={uploadState.isUploading}
+        uploadProgress={uploadState.uploadProgress}
+        uploadData={uploadState.uploadMeta}
+        onDismiss={() => {
+          setUploadState(prev => ({
+            ...prev,
+            isUploading: false,
+            uploadProgress: 0,
+            uploadData: null,
+            uploadMeta: null
+          }))
+          sessionStorage.removeItem('productUploadData')
+          sessionStorage.removeItem('productUploadProgress')
+          sessionStorage.removeItem('productUploadError')
+        }}
+      />
 
       {/* Header */}
       <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 shadow-sm">
@@ -604,6 +656,11 @@ useEffect(() => {
                 <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full animate-pulse mr-1 sm:mr-2"></div>
                 <span className="text-xs sm:text-sm font-medium text-gray-700">Auto-save</span>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       {/* Progress Indicator */}
       <div className="sticky top-14 sm:top-16 z-30 bg-white/60 backdrop-blur-md border-b border-gray-200/30">
         <div className="max-w-7xl mx-auto px-2 sm:px-3 lg:px-8">
@@ -1160,6 +1217,53 @@ useEffect(() => {
 
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700 flex items-center">
+                  Shipping Cost ($)
+                  <span className="ml-2 text-xs text-gray-400 font-normal">Leave empty for free</span>
+                </label>
+                <div className="relative group">
+                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">$</div>
+                  <input
+                    type="number"
+                    name="shippingCost"
+                    value={formData.shippingCost}
+                    onChange={handleInputChange}
+                    step="0.01"
+                    min="0"
+                    className="block w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200/50 bg-gray-50/50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all duration-200 group-hover:bg-gray-50"
+                    placeholder="0.00"
+                  />
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-teal-500/5 to-cyan-500/5 opacity-0 group-focus-within:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-6">
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="freeShipping"
+                  checked={formData.freeShipping}
+                  onChange={handleInputChange}
+                  className="w-5 h-5 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
+                />
+                <span className="text-gray-700 font-medium">Free shipping</span>
+              </label>
+
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="taxable"
+                  checked={formData.taxable}
+                  onChange={handleInputChange}
+                  className="w-5 h-5 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
+                />
+                <span className="text-gray-700 font-medium">Taxable product</span>
+              </label>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700 flex items-center">
                   Dimensions (cm)
                   <span className="ml-2 text-xs text-gray-400 font-normal">L × W × H</span>
                 </label>
@@ -1458,10 +1562,64 @@ useEffect(() => {
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-pink-500/5 to-rose-500/5 opacity-0 group-focus-within:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700 flex items-center">
+                  SEO Keywords
+                  <span className="ml-2 text-xs text-gray-400 font-normal">(Meta tags for search engines)</span>
+                </label>
+                <div className="relative group">
+                  <input
+                    type="text"
+                    name="seoKeywords"
+                    value={formData.seoKeywords}
+                    onChange={handleInputChange}
+                    className="block w-full px-4 py-3 rounded-xl border border-gray-200/50 bg-gray-50/50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 transition-all duration-200 group-hover:bg-gray-50"
+                    placeholder="e.g. electronics, smartphone, wireless, bluetooth"
+                  />
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-pink-500/5 to-rose-500/5 opacity-0 group-focus-within:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
+                </div>
+                <p className="text-xs text-gray-500">
+                  These keywords go in the HTML meta tags for search engines (Google, Bing) - they are NOT visible on the product page. Separate with commas.
+                </p>
+              </div>
             </div>
           </div>
 
+          {/* Form Actions */}
+          <div className="sticky bottom-0 z-40 bg-gradient-to-t from-white via-white to-white/80 backdrop-blur-xl border-t border-gray-200/50 shadow-2xl shadow-gray-900/10 p-4 sm:p-6 rounded-b-2xl">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-sm text-gray-600">
+                {errors && Object.keys(errors).length > 0 && (
+                  <span className="text-red-600 font-medium">
+                    Please fix {Object.keys(errors).length} error{Object.keys(errors).length > 1 ? 's' : ''} above
+                  </span>
+                )}
+              </div>
+              
+              <div className="flex items-center space-x-3 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/products')}
+                  className="flex-1 sm:flex-none px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold rounded-xl transition-all duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createProductMutation.isLoading}
+                  className="flex-1 sm:flex-none px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-blue-400 disabled:to-indigo-400 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl"
+                >
+                  <Save className="w-5 h-5" />
+                  <span>{createProductMutation.isLoading ? 'Creating...' : 'Create Product'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+      </div>
       </form>
+      </div>
       
       {/* Upload Retry Popup */}
       <UploadRetryPopup
@@ -1473,7 +1631,6 @@ useEffect(() => {
         uploadProgress={uploadState.uploadProgress}
         isRetrying={uploadState.isRetrying}
       />
-      </div>
     </div>
   )
 }

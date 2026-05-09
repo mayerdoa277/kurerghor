@@ -5,16 +5,22 @@ class UploadService {
     this.activeUploads = new Map()
     this.uploadProgress = new Map()
     this.lastProgressTime = new Map()
-    this.stuckDetectionThreshold = 5000 // 5 seconds without progress (was 30s)
-    this.baseTimeout = 15000 // 15 seconds base timeout (was 5min)
-    this.maxTimeout = 30000 // 30 seconds maximum timeout (was 10min)
+    this.stuckDetectionThreshold = 30000 // 30 seconds without progress (increased from 5s)
+    this.baseTimeout = 60000 // 60 seconds base timeout (increased from 15s)
+    this.maxTimeout = 120000 // 120 seconds maximum timeout (increased from 30s)
   }
 
   /**
    * Enhanced product upload with intelligent timeout handling
    */
   async uploadProduct(productData, customEndpoint = null) {
-    const uploadId = this.generateUploadId()
+    // Extract uploadId from FormData if available, otherwise generate one
+    let uploadId
+    if (productData instanceof FormData) {
+      uploadId = productData.get('uploadId') || this.generateUploadId()
+    } else {
+      uploadId = this.generateUploadId()
+    }
     const startTime = Date.now()
     
     try {
@@ -109,6 +115,8 @@ class UploadService {
    */
   async createUploadRequest(productData, uploadId, timeout, customEndpoint = null) {
     const endpoint = customEndpoint || '/vendors/products'
+    console.log('🔍 DEBUG - UploadService uploadId:', uploadId)
+    console.log('🔍 DEBUG - UploadService productData type:', productData instanceof FormData ? 'FormData' : typeof productData)
     return api.post(endpoint, productData, {
       timeout,
       onUploadProgress: (progressEvent) => {
@@ -205,7 +213,7 @@ class UploadService {
         }
       }
       
-      setTimeout(checkTimeout, 10000) // Start checking after 10 seconds
+      setTimeout(checkTimeout, 30000) // Start checking after 30 seconds (was 10s)
     })
   }
 
@@ -220,22 +228,22 @@ class UploadService {
         const currentProgress = this.uploadProgress.get(uploadId)
         
         // If stuck for too long, fail
-        if (timeSinceProgress > this.stuckDetectionThreshold * 2) { // 10 seconds (was 60s)
+        if (timeSinceProgress > this.stuckDetectionThreshold) { // 30 seconds (was 10s)
           console.error('🚫 Upload stuck detected:', {
             uploadId,
             timeSinceProgress: (timeSinceProgress / 1000).toFixed(0) + 's',
             currentProgress
           })
           
-          reject(new Error(`Upload stuck. No progress for ${timeSinceProgress / 1000} seconds. Current progress: ${currentProgress}%`))
+          reject(new Error(`Upload stuck. No progress for ${(timeSinceProgress / 1000).toFixed(3)} seconds. Current progress: ${currentProgress}%`))
           return
         }
         
         // Continue checking
-        setTimeout(checkStuck, 2000) // Check every 2 seconds (was 10s)
+        setTimeout(checkStuck, 5000) // Check every 5 seconds (was 2s)
       }
       
-      setTimeout(checkStuck, 3000) // Start checking after 3 seconds (was 30s)
+      setTimeout(checkStuck, 10000) // Start checking after 10 seconds (was 3s)
     })
   }
 
